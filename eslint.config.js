@@ -15,6 +15,7 @@ export default [
         Blob: "readonly",
         FileReader: "readonly",
         setTimeout: "readonly",
+        localStorage: "readonly",
       },
     },
     rules: {

@@ -2,6 +2,26 @@
 let markedDays = new Set(); // Set of date strings "YYYY-MM-DD"
 let lastClickedDate = null;
 
+// LocalStorage persistence
+const STORAGE_KEY = 'day-limit-tracker-dates';
+
+function saveToStorage() {
+  const dates = Array.from(markedDays);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dates));
+}
+
+function loadFromStorage() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const dates = JSON.parse(stored);
+      markedDays = new Set(dates);
+    }
+  } catch {
+    // Ignore invalid storage data
+  }
+}
+
 // Configurable settings
 let windowSize = 365; // Rolling window size in days
 let dayLimit = 90; // Max marked days allowed
@@ -359,6 +379,7 @@ function handleDayClick(dateStr, event) {
 
   lastClickedDate = dateStr;
   renderCalendar();
+  saveToStorage();
 }
 
 // Tooltip
@@ -437,6 +458,7 @@ fileInput.addEventListener('change', (e) => {
       });
 
       renderCalendar();
+      saveToStorage();
     } catch (err) {
       alert('Error parsing JSON file: ' + err.message);
     }
@@ -493,6 +515,7 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   if (confirm('Clear all marked days?')) {
     markedDays.clear();
     renderCalendar();
+    saveToStorage();
   }
 });
 
@@ -769,5 +792,6 @@ calendarContainer.addEventListener('keydown', (e) => {
 });
 
 // Initial render
+loadFromStorage();
 updateYearNav();
 renderCalendar();
