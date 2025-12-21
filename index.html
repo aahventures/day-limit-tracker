@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>90-Day Travel Tracker</title>
+  <title>Travel Day Tracker</title>
   <style>
     * {
       box-sizing: border-box;
@@ -297,7 +297,7 @@
   <div class="stats">
     <div class="stat">
       <div class="stat-value" id="daysInWindow">0</div>
-      <div class="stat-label">Days outside (in window)</div>
+      <div class="stat-label">Marked (in window)</div>
     </div>
     <div class="stat">
       <div class="stat-value" id="daysRemaining">90</div>
@@ -305,7 +305,7 @@
     </div>
     <div class="stat">
       <div class="stat-value" id="totalDays">0</div>
-      <div class="stat-label">Total days outside</div>
+      <div class="stat-label">Total marked</div>
     </div>
     <div class="stat worst-case" title="Click to jump to this window">
       <div class="stat-value" id="maxDays">0</div>
@@ -332,10 +332,10 @@
   <div class="calendar-container" id="calendarContainer"></div>
 
   <div class="legend">
-    <div class="legend-item"><div class="legend-box home"></div> Home</div>
-    <div class="legend-item"><div class="legend-box outside"></div> Outside</div>
+    <div class="legend-item"><div class="legend-box home"></div> Unmarked</div>
+    <div class="legend-item"><div class="legend-box outside"></div> Marked</div>
     <div class="legend-item"><div class="legend-box in-window"></div> In window</div>
-    <div class="legend-item"><div class="legend-box outside-in-window"></div> Outside (in window)</div>
+    <div class="legend-item"><div class="legend-box outside-in-window"></div> Marked (in window)</div>
   </div>
 
   <div class="tooltip" id="tooltip"></div>
@@ -347,7 +347,7 @@
 
     // Configurable settings
     let windowSize = 365; // Rolling window size in days
-    let dayLimit = 90;    // Max days outside allowed
+    let dayLimit = 90;    // Max marked days allowed
 
     // Date utilities
     const today = new Date();
@@ -682,7 +682,7 @@
 
       tooltip.innerHTML = `
         <div>${formatDate(date)}</div>
-        <div>${isOutside ? 'Outside country' : 'Home'}</div>
+        <div>${isOutside ? 'Marked' : 'Unmarked'}</div>
         ${inWindow ? '<div style="color: #f0883e">In current window</div>' : ''}
       `;
 
@@ -768,7 +768,7 @@
 
     // Clear
     document.getElementById('clearBtn').addEventListener('click', () => {
-      if (confirm('Clear all days outside?')) {
+      if (confirm('Clear all marked days?')) {
         outsideDays.clear();
         renderCalendar();
       }
