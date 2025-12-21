@@ -97,14 +97,6 @@
     .stat.worst-case:hover {
       background: #21262d;
     }
-    .stat.worst-case .stat-label::after {
-      content: " (click to jump)";
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .stat.worst-case:hover .stat-label::after {
-      opacity: 1;
-    }
     .slider-container {
       background: #161b22;
       border: 1px solid #30363d;
@@ -282,7 +274,7 @@
       <div class="stat-value" id="totalDays">0</div>
       <div class="stat-label">Total days outside</div>
     </div>
-    <div class="stat worst-case">
+    <div class="stat worst-case" title="Click to jump to this window">
       <div class="stat-value" id="maxDays">0</div>
       <div class="stat-label">Max in any window</div>
       <div class="stat-detail" id="maxWindowDates"></div>
