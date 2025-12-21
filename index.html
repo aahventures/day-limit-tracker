@@ -96,9 +96,6 @@
     .stat-value.warning {
       color: #f85149;
     }
-    .stat-value.safe {
-      color: #3fb950;
-    }
     .stat-detail {
       color: #8b949e;
       font-size: 11px;
@@ -524,13 +521,15 @@
       // Update dynamic label
       document.getElementById('remainingLabel').textContent = `Remaining (of ${dayLimit})`;
 
-      if (daysInWindow > dayLimit) {
-        daysInWindowEl.className = 'stat-value warning';
-        daysRemainingEl.className = 'stat-value warning';
-      } else {
-        daysInWindowEl.className = 'stat-value safe';
-        daysRemainingEl.className = 'stat-value safe';
-      }
+      // Marked (in window) - always white
+      daysInWindowEl.className = 'stat-value';
+      daysInWindowEl.style.color = '';
+
+      // Remaining - gradient from green (100%) to red (0%)
+      const ratio = daysRemaining / dayLimit; // 1 = full, 0 = empty
+      const hue = Math.round(ratio * 120); // 120 = green, 0 = red
+      daysRemainingEl.className = 'stat-value';
+      daysRemainingEl.style.color = `hsl(${hue}, 70%, 55%)`;
 
       // Update window dates display
       const { start, end } = getWindowDates();
@@ -543,10 +542,11 @@
       const maxDaysEl = document.getElementById('maxDays');
       maxDaysEl.textContent = maxWindow.maxDays;
 
+      // Worst window - white until over limit, then red
       if (maxWindow.maxDays > dayLimit) {
         maxDaysEl.className = 'stat-value warning';
       } else {
-        maxDaysEl.className = 'stat-value safe';
+        maxDaysEl.className = 'stat-value';
       }
 
       if (maxWindow.start && maxWindow.end) {
