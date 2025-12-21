@@ -40,7 +40,7 @@
       flex-wrap: wrap;
       align-items: center;
     }
-    button, .file-label {
+    button, .file-label, select {
       background: #21262d;
       border: 1px solid #30363d;
       color: #c9d1d9;
@@ -49,11 +49,25 @@
       cursor: pointer;
       font-size: 12px;
     }
-    button:hover, .file-label:hover {
+    button:hover, .file-label:hover, select:hover {
       background: #30363d;
     }
     input[type="file"] {
       display: none;
+    }
+    input[type="number"] {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      width: 50px;
+      text-align: center;
+    }
+    .input-sep {
+      color: #8b949e;
+      font-size: 12px;
     }
     .stats {
       background: #161b22;
@@ -261,8 +275,16 @@
 </head>
 <body>
   <div class="header">
-    <h1>90-Day Travel Tracker <span>Click to toggle days, Shift+click for range</span></h1>
+    <h1>Travel Day Tracker <span>Click to toggle days, Shift+click for range</span></h1>
     <div class="controls">
+      <select id="presetSelect">
+        <option value="custom">Custom</option>
+        <option value="365/90" selected>365 days / 90 limit</option>
+        <option value="180/90">Schengen (180/90)</option>
+      </select>
+      <input type="number" id="windowSizeInput" min="1" max="730" value="365" title="Window size (days)">
+      <span class="input-sep">/</span>
+      <input type="number" id="dayLimitInput" min="1" max="365" value="90" title="Day limit">
       <label class="file-label">
         <input type="file" id="fileInput" accept=".json">
         Load
@@ -279,7 +301,7 @@
     </div>
     <div class="stat">
       <div class="stat-value" id="daysRemaining">90</div>
-      <div class="stat-label">Remaining (of 90)</div>
+      <div class="stat-label" id="remainingLabel">Remaining (of 90)</div>
     </div>
     <div class="stat">
       <div class="stat-value" id="totalDays">0</div>
@@ -294,7 +316,7 @@
 
   <div class="slider-container">
     <div class="slider-label">
-      <span>365-day window ending:</span>
+      <span id="windowLabel">365-day window ending:</span>
       <span class="slider-dates" id="windowDates"></span>
     </div>
     <input type="range" id="windowSlider" min="364" max="730" value="365">
@@ -323,6 +345,10 @@
     let outsideDays = new Set(); // Set of date strings "YYYY-MM-DD"
     let lastClickedDate = null;
 
+    // Configurable settings
+    let windowSize = 365; // Rolling window size in days
+    let dayLimit = 90;    // Max days outside allowed
+
     // Date utilities
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -346,7 +372,7 @@
     function getDefaultOffset() {
       const { startDate, totalDays } = getDateRange();
       const offset = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
-      return Math.max(364, Math.min(offset, totalDays));
+      return Math.max(windowSize - 1, Math.min(offset, totalDays));
     }
 
     let windowEndOffset = getDefaultOffset();
@@ -385,7 +411,7 @@
     function getWindowDates() {
       const { startDate } = getDateRange();
       const endDate = addDays(startDate, windowEndOffset);
-      const startWindowDate = addDays(endDate, -364); // 365 days inclusive
+      const startWindowDate = addDays(endDate, -(windowSize - 1)); // windowSize days inclusive
       return { start: startWindowDate, end: endDate };
     }
 
@@ -410,18 +436,19 @@
     // Find the window with maximum days outside
     let maxWindowOffset = null;
     function findMaxWindow() {
+      const minOffset = windowSize - 1;
       if (outsideDays.size === 0) {
-        return { maxDays: 0, offset: 364, start: null, end: null };
+        return { maxDays: 0, offset: minOffset, start: null, end: null };
       }
 
       const { startDate, totalDays } = getDateRange();
       let maxDays = 0;
-      let bestOffset = 364;
+      let bestOffset = minOffset;
 
       // Scan all possible windows (sliding by day)
-      for (let offset = 364; offset <= totalDays; offset++) {
+      for (let offset = minOffset; offset <= totalDays; offset++) {
         const windowEnd = addDays(startDate, offset);
-        const windowStart = addDays(windowEnd, -364);
+        const windowStart = addDays(windowEnd, -(windowSize - 1));
         const days = calculateDaysInWindowRange(windowStart, windowEnd);
 
         if (days > maxDays) {
@@ -431,7 +458,7 @@
       }
 
       const bestEnd = addDays(startDate, bestOffset);
-      const bestStart = addDays(bestEnd, -364);
+      const bestStart = addDays(bestEnd, -(windowSize - 1));
 
       return { maxDays, offset: bestOffset, start: bestStart, end: bestEnd };
     }
@@ -439,7 +466,7 @@
     // Update stats display
     function updateStats() {
       const daysInWindow = calculateDaysInWindow();
-      const daysRemaining = Math.max(0, 90 - daysInWindow);
+      const daysRemaining = Math.max(0, dayLimit - daysInWindow);
 
       const daysInWindowEl = document.getElementById('daysInWindow');
       const daysRemainingEl = document.getElementById('daysRemaining');
@@ -448,7 +475,10 @@
       daysRemainingEl.textContent = daysRemaining;
       document.getElementById('totalDays').textContent = outsideDays.size;
 
-      if (daysInWindow > 90) {
+      // Update dynamic label
+      document.getElementById('remainingLabel').textContent = `Remaining (of ${dayLimit})`;
+
+      if (daysInWindow > dayLimit) {
         daysInWindowEl.className = 'stat-value warning';
         daysRemainingEl.className = 'stat-value warning';
       } else {
@@ -467,7 +497,7 @@
       const maxDaysEl = document.getElementById('maxDays');
       maxDaysEl.textContent = maxWindow.maxDays;
 
-      if (maxWindow.maxDays > 90) {
+      if (maxWindow.maxDays > dayLimit) {
         maxDaysEl.className = 'stat-value warning';
       } else {
         maxDaysEl.className = 'stat-value safe';
@@ -749,9 +779,10 @@
 
     function updateSliderRange() {
       const { totalDays } = getDateRange();
-      slider.min = 364;
+      slider.min = windowSize - 1;
       slider.max = totalDays;
       slider.value = windowEndOffset;
+      document.getElementById('windowLabel').textContent = `${windowSize}-day window ending:`;
     }
 
     // Jump to worst-case window
@@ -787,6 +818,39 @@
       updateSliderRange();
       updateYearNav();
       renderCalendar();
+    });
+
+    // Config inputs
+    const presetSelect = document.getElementById('presetSelect');
+    const windowSizeInput = document.getElementById('windowSizeInput');
+    const dayLimitInput = document.getElementById('dayLimitInput');
+
+    function applyConfig() {
+      windowSize = parseInt(windowSizeInput.value) || 365;
+      dayLimit = parseInt(dayLimitInput.value) || 90;
+      windowEndOffset = getDefaultOffset();
+      updateSliderRange();
+      renderCalendar();
+    }
+
+    presetSelect.addEventListener('change', (e) => {
+      const value = e.target.value;
+      if (value !== 'custom') {
+        const [ws, dl] = value.split('/').map(Number);
+        windowSizeInput.value = ws;
+        dayLimitInput.value = dl;
+        applyConfig();
+      }
+    });
+
+    windowSizeInput.addEventListener('change', () => {
+      presetSelect.value = 'custom';
+      applyConfig();
+    });
+
+    dayLimitInput.addEventListener('change', () => {
+      presetSelect.value = 'custom';
+      applyConfig();
     });
 
     updateSliderRange();
