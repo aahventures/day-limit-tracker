@@ -72,6 +72,28 @@
     .stat-value.safe {
       color: #3fb950;
     }
+    .stat-detail {
+      color: #8b949e;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    .stat.worst-case {
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .stat.worst-case:hover {
+      background: #21262d;
+    }
+    .stat.worst-case .stat-label::after {
+      content: " (click to jump)";
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .stat.worst-case:hover .stat-label::after {
+      opacity: 1;
+    }
     .slider-container {
       background: #161b22;
       border: 1px solid #30363d;
@@ -245,6 +267,11 @@
       <div class="stat-value" id="totalDays">0</div>
       <div class="stat-label">Total days outside</div>
     </div>
+    <div class="stat worst-case">
+      <div class="stat-value" id="maxDays">0</div>
+      <div class="stat-label">Max in any window</div>
+      <div class="stat-detail" id="maxWindowDates"></div>
+    </div>
   </div>
 
   <div class="slider-container">
@@ -325,17 +352,50 @@
       return { start: startWindowDate, end: endDate };
     }
 
-    // Calculate days outside in current window
-    function calculateDaysInWindow() {
-      const { start, end } = getWindowDates();
+    // Calculate days outside in a specific window
+    function calculateDaysInWindowRange(windowStart, windowEnd) {
       let count = 0;
       outsideDays.forEach(dateStr => {
         const date = stringToDate(dateStr);
-        if (date >= start && date <= end) {
+        if (date >= windowStart && date <= windowEnd) {
           count++;
         }
       });
       return count;
+    }
+
+    // Calculate days outside in current window
+    function calculateDaysInWindow() {
+      const { start, end } = getWindowDates();
+      return calculateDaysInWindowRange(start, end);
+    }
+
+    // Find the window with maximum days outside
+    let maxWindowOffset = null;
+    function findMaxWindow() {
+      if (outsideDays.size === 0) {
+        return { maxDays: 0, offset: 364, start: null, end: null };
+      }
+
+      let maxDays = 0;
+      let bestOffset = 364;
+
+      // Scan all possible windows (sliding by day)
+      for (let offset = 364; offset <= totalDaysInRange; offset++) {
+        const windowEnd = addDays(startDate, offset);
+        const windowStart = addDays(windowEnd, -364);
+        const days = calculateDaysInWindowRange(windowStart, windowEnd);
+
+        if (days > maxDays) {
+          maxDays = days;
+          bestOffset = offset;
+        }
+      }
+
+      const bestEnd = addDays(startDate, bestOffset);
+      const bestStart = addDays(bestEnd, -364);
+
+      return { maxDays, offset: bestOffset, start: bestStart, end: bestEnd };
     }
 
     // Update stats display
@@ -362,6 +422,25 @@
       const { start, end } = getWindowDates();
       document.getElementById('windowDates').textContent =
         `${formatDate(start)} - ${formatDate(end)}`;
+
+      // Update max window stats
+      const maxWindow = findMaxWindow();
+      maxWindowOffset = maxWindow.offset;
+      const maxDaysEl = document.getElementById('maxDays');
+      maxDaysEl.textContent = maxWindow.maxDays;
+
+      if (maxWindow.maxDays > 90) {
+        maxDaysEl.className = 'stat-value warning';
+      } else {
+        maxDaysEl.className = 'stat-value safe';
+      }
+
+      if (maxWindow.start && maxWindow.end) {
+        document.getElementById('maxWindowDates').textContent =
+          `${formatDate(maxWindow.start)} - ${formatDate(maxWindow.end)}`;
+      } else {
+        document.getElementById('maxWindowDates').textContent = '';
+      }
     }
 
     // Render calendar
@@ -609,6 +688,15 @@
 
     // Slider setup
     const slider = document.getElementById('windowSlider');
+
+    // Jump to worst-case window
+    document.querySelector('.stat.worst-case').addEventListener('click', () => {
+      if (maxWindowOffset !== null) {
+        windowEndOffset = maxWindowOffset;
+        slider.value = maxWindowOffset;
+        renderCalendar();
+      }
+    });
     slider.min = 364; // Minimum: end of first year (so window starts at Jan 1)
     slider.max = totalDaysInRange;
     slider.value = windowEndOffset;
