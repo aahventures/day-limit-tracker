@@ -416,7 +416,7 @@
       return { start: startWindowDate, end: endDate };
     }
 
-    // Calculate days outside in a specific window
+    // Calculate marked days in a specific window
     function calculateDaysInWindowRange(windowStart, windowEnd) {
       let count = 0;
       outsideDays.forEach(dateStr => {
@@ -428,13 +428,13 @@
       return count;
     }
 
-    // Calculate days outside in current window
+    // Calculate marked days in current window
     function calculateDaysInWindow() {
       const { start, end } = getWindowDates();
       return calculateDaysInWindowRange(start, end);
     }
 
-    // Find the window with maximum days outside
+    // Find the window with maximum marked days
     let maxWindowOffset = null;
     function findMaxWindow() {
       const minOffset = windowSize - 1;
