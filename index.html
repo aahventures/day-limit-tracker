@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>90-Day Travel Tracker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button, .file-label {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover, .file-label:hover {
+      background: #30363d;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .stats {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+    }
+    .stat-label {
+      color: #8b949e;
+      font-size: 12px;
+    }
+    .stat-value.warning {
+      color: #f85149;
+    }
+    .stat-value.safe {
+      color: #3fb950;
+    }
+    .slider-container {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .slider-dates {
+      color: #8b949e;
+    }
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+    .calendar-container {
+      overflow-x: auto;
+    }
+    .year-label {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 20px 0 10px 0;
+      color: #8b949e;
+    }
+    .calendar {
+      display: flex;
+      gap: 3px;
+    }
+    .month {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .month-label {
+      font-size: 11px;
+      color: #8b949e;
+      height: 15px;
+      text-align: center;
+    }
+    .weeks {
+      display: flex;
+      gap: 2px;
+    }
+    .week {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .day {
+      width: 12px;
+      height: 12px;
+      background: #161b22;
+      border-radius: 2px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.1s;
+    }
+    .day:hover {
+      border-color: #58a6ff;
+    }
+    .day.outside {
+      background: #1f6feb;
+    }
+    .day.in-window {
+      border-color: #f0883e;
+    }
+    .day.outside.in-window {
+      background: #f0883e;
+    }
+    .day.future {
+      background: #0d1117;
+      opacity: 0.5;
+    }
+    .day.future.outside {
+      background: #1f6feb;
+      opacity: 0.6;
+    }
+    .day.selected {
+      border-color: #58a6ff;
+      border-width: 2px;
+    }
+    .legend {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #8b949e;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-box {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+    .legend-box.home {
+      background: #161b22;
+    }
+    .legend-box.outside {
+      background: #1f6feb;
+    }
+    .legend-box.in-window {
+      background: #161b22;
+      border: 1px solid #f0883e;
+    }
+    .legend-box.outside-in-window {
+      background: #f0883e;
+    }
+    .tooltip {
+      position: fixed;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+    }
+    .instructions {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #8b949e;
+    }
+    .instructions strong {
+      color: #c9d1d9;
+    }
+  </style>
+</head>
+<body>
+  <h1>90-Day Travel Tracker</h1>
+  <p class="subtitle">Track days outside a country within a rolling 365-day window</p>
+
+  <div class="instructions">
+    <strong>How to use:</strong> Click days to mark as outside country. Shift+click to select a range.
+    Load existing data or export your schedule as JSON.
+  </div>
+
+  <div class="controls">
+    <label class="file-label">
+      <input type="file" id="fileInput" accept=".json">
+      Load JSON
+    </label>
+    <button id="exportBtn">Export JSON</button>
+    <button id="clearBtn">Clear All</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" id="daysInWindow">0</div>
+      <div class="stat-label">Days outside in window</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="daysRemaining">90</div>
+      <div class="stat-label">Days remaining</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="totalDays">0</div>
+      <div class="stat-label">Total days outside</div>
+    </div>
+  </div>
+
+  <div class="slider-container">
+    <div class="slider-label">
+      <span>365-day window ending:</span>
+      <span class="slider-dates" id="windowDates"></span>
+    </div>
+    <input type="range" id="windowSlider" min="364" max="730" value="365">
+  </div>
+
+  <div class="calendar-container" id="calendarContainer"></div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-box home"></div> Home</div>
+    <div class="legend-item"><div class="legend-box outside"></div> Outside country</div>
+    <div class="legend-item"><div class="legend-box in-window"></div> In 365-day window</div>
+    <div class="legend-item"><div class="legend-box outside-in-window"></div> Outside + in window</div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    // State
+    let outsideDays = new Set(); // Set of date strings "YYYY-MM-DD"
+    let lastClickedDate = null;
+
+    // Date utilities - dynamic based on current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentYear = today.getFullYear();
+
+    // Show current year and next year
+    const displayYears = [currentYear, currentYear + 1];
+
+    // Start date is Jan 1 of current year, end is Dec 31 of next year
+    const startDate = new Date(currentYear, 0, 1);
+    const endDate = new Date(currentYear + 1, 11, 31);
+    const totalDaysInRange = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+    // Default slider to today's date
+    const defaultOffset = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
+    let windowEndOffset = defaultOffset;
+
+    function dateToString(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function stringToDate(str) {
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function addDays(date, days) {
+      const result = new Date(date);
+      result.setDate(result.getDate() + days);
+      return result;
+    }
+
+    function daysBetween(date1, date2) {
+      const d1 = new Date(date1);
+      const d2 = new Date(date2);
+      d1.setHours(0, 0, 0, 0);
+      d2.setHours(0, 0, 0, 0);
+      return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+    }
+
+    function formatDate(date) {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // Get window dates based on slider
+    function getWindowDates() {
+      const endDate = addDays(startDate, windowEndOffset);
+      const startWindowDate = addDays(endDate, -364); // 365 days inclusive
+      return { start: startWindowDate, end: endDate };
+    }
+
+    // Calculate days outside in current window
+    function calculateDaysInWindow() {
+      const { start, end } = getWindowDates();
+      let count = 0;
+      outsideDays.forEach(dateStr => {
+        const date = stringToDate(dateStr);
+        if (date >= start && date <= end) {
+          count++;
+        }
+      });
+      return count;
+    }
+
+    // Update stats display
+    function updateStats() {
+      const daysInWindow = calculateDaysInWindow();
+      const daysRemaining = Math.max(0, 90 - daysInWindow);
+
+      const daysInWindowEl = document.getElementById('daysInWindow');
+      const daysRemainingEl = document.getElementById('daysRemaining');
+
+      daysInWindowEl.textContent = daysInWindow;
+      daysRemainingEl.textContent = daysRemaining;
+      document.getElementById('totalDays').textContent = outsideDays.size;
+
+      if (daysInWindow > 90) {
+        daysInWindowEl.className = 'stat-value warning';
+        daysRemainingEl.className = 'stat-value warning';
+      } else {
+        daysInWindowEl.className = 'stat-value safe';
+        daysRemainingEl.className = 'stat-value safe';
+      }
+
+      // Update window dates display
+      const { start, end } = getWindowDates();
+      document.getElementById('windowDates').textContent =
+        `${formatDate(start)} - ${formatDate(end)}`;
+    }
+
+    // Render calendar
+    function renderCalendar() {
+      const container = document.getElementById('calendarContainer');
+      container.innerHTML = '';
+
+      const { start: windowStart, end: windowEnd } = getWindowDates();
+
+      // Render current year and next year
+      displayYears.forEach(year => {
+        const yearLabel = document.createElement('div');
+        yearLabel.className = 'year-label';
+        yearLabel.textContent = year;
+        container.appendChild(yearLabel);
+
+        const calendar = document.createElement('div');
+        calendar.className = 'calendar';
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        months.forEach((monthName, monthIndex) => {
+          const monthDiv = document.createElement('div');
+          monthDiv.className = 'month';
+
+          const monthLabel = document.createElement('div');
+          monthLabel.className = 'month-label';
+          monthLabel.textContent = monthName;
+          monthDiv.appendChild(monthLabel);
+
+          const weeksDiv = document.createElement('div');
+          weeksDiv.className = 'weeks';
+
+          const firstDay = new Date(year, monthIndex, 1);
+          const lastDay = new Date(year, monthIndex + 1, 0);
+          const daysInMonth = lastDay.getDate();
+
+          // Group days into weeks
+          let currentWeek = [];
+          const weeks = [];
+
+          // Add empty cells for days before the first of the month
+          const firstDayOfWeek = firstDay.getDay();
+          for (let i = 0; i < firstDayOfWeek; i++) {
+            currentWeek.push(null);
+          }
+
+          for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, monthIndex, day);
+            currentWeek.push(date);
+
+            if (currentWeek.length === 7) {
+              weeks.push(currentWeek);
+              currentWeek = [];
+            }
+          }
+
+          if (currentWeek.length > 0) {
+            while (currentWeek.length < 7) {
+              currentWeek.push(null);
+            }
+            weeks.push(currentWeek);
+          }
+
+          weeks.forEach(week => {
+            const weekDiv = document.createElement('div');
+            weekDiv.className = 'week';
+
+            week.forEach(date => {
+              const dayDiv = document.createElement('div');
+              dayDiv.className = 'day';
+
+              if (date) {
+                const dateStr = dateToString(date);
+                dayDiv.dataset.date = dateStr;
+
+                if (date > today) {
+                  dayDiv.classList.add('future');
+                }
+
+                if (outsideDays.has(dateStr)) {
+                  dayDiv.classList.add('outside');
+                }
+
+                if (date >= windowStart && date <= windowEnd) {
+                  dayDiv.classList.add('in-window');
+                }
+
+                // All dates are clickable (including future for planning)
+                dayDiv.addEventListener('click', (e) => handleDayClick(dateStr, e));
+                dayDiv.addEventListener('mouseenter', (e) => showTooltip(dateStr, e));
+                dayDiv.addEventListener('mouseleave', hideTooltip);
+              } else {
+                dayDiv.style.visibility = 'hidden';
+              }
+
+              weekDiv.appendChild(dayDiv);
+            });
+
+            weeksDiv.appendChild(weekDiv);
+          });
+
+          monthDiv.appendChild(weeksDiv);
+          calendar.appendChild(monthDiv);
+        });
+
+        container.appendChild(calendar);
+      });
+
+      updateStats();
+    }
+
+    // Handle day click
+    function handleDayClick(dateStr, event) {
+      if (event.shiftKey && lastClickedDate) {
+        // Range selection
+        const start = stringToDate(lastClickedDate);
+        const end = stringToDate(dateStr);
+        const [from, to] = start < end ? [start, end] : [end, start];
+
+        const shouldAdd = !outsideDays.has(dateStr);
+        let current = new Date(from);
+
+        while (current <= to) {
+          const str = dateToString(current);
+          if (shouldAdd) {
+            outsideDays.add(str);
+          } else {
+            outsideDays.delete(str);
+          }
+          current = addDays(current, 1);
+        }
+      } else {
+        // Single toggle
+        if (outsideDays.has(dateStr)) {
+          outsideDays.delete(dateStr);
+        } else {
+          outsideDays.add(dateStr);
+        }
+      }
+
+      lastClickedDate = dateStr;
+      renderCalendar();
+    }
+
+    // Tooltip
+    function showTooltip(dateStr, event) {
+      const tooltip = document.getElementById('tooltip');
+      const date = stringToDate(dateStr);
+      const isOutside = outsideDays.has(dateStr);
+      const { start, end } = getWindowDates();
+      const inWindow = date >= start && date <= end;
+
+      tooltip.innerHTML = `
+        <div>${formatDate(date)}</div>
+        <div>${isOutside ? 'Outside country' : 'Home'}</div>
+        ${inWindow ? '<div style="color: #f0883e">In current window</div>' : ''}
+      `;
+
+      tooltip.style.left = event.pageX + 10 + 'px';
+      tooltip.style.top = event.pageY + 10 + 'px';
+      tooltip.style.display = 'block';
+    }
+
+    function hideTooltip() {
+      document.getElementById('tooltip').style.display = 'none';
+    }
+
+    // File handling
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          outsideDays.clear();
+
+          data.forEach(trip => {
+            const start = stringToDate(trip.start);
+            const end = stringToDate(trip.end);
+            let current = new Date(start);
+
+            while (current <= end) {
+              outsideDays.add(dateToString(current));
+              current = addDays(current, 1);
+            }
+          });
+
+          renderCalendar();
+        } catch (err) {
+          alert('Error parsing JSON file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Export
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      // Group consecutive days into ranges
+      const sortedDays = Array.from(outsideDays).sort();
+      const trips = [];
+      let currentTrip = null;
+
+      sortedDays.forEach(dateStr => {
+        if (!currentTrip) {
+          currentTrip = { start: dateStr, end: dateStr };
+        } else {
+          const lastDate = stringToDate(currentTrip.end);
+          const thisDate = stringToDate(dateStr);
+          const diff = daysBetween(lastDate, thisDate);
+
+          if (diff === 1) {
+            currentTrip.end = dateStr;
+          } else {
+            trips.push(currentTrip);
+            currentTrip = { start: dateStr, end: dateStr };
+          }
+        }
+      });
+
+      if (currentTrip) {
+        trips.push(currentTrip);
+      }
+
+      const json = JSON.stringify(trips, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'travel-dates.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Clear
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      if (confirm('Clear all days outside?')) {
+        outsideDays.clear();
+        renderCalendar();
+      }
+    });
+
+    // Slider setup
+    const slider = document.getElementById('windowSlider');
+    slider.min = 364; // Minimum: end of first year (so window starts at Jan 1)
+    slider.max = totalDaysInRange;
+    slider.value = windowEndOffset;
+
+    slider.addEventListener('input', (e) => {
+      windowEndOffset = parseInt(e.target.value);
+      renderCalendar();
+    });
+
+    // Initial render
+    renderCalendar();
+  </script>
+</body>
+</html>
