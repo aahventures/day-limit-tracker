@@ -806,6 +806,10 @@
         // Reset input so the same file can be loaded again
         fileInput.value = '';
       };
+      reader.onerror = () => {
+        alert('Error reading file');
+        fileInput.value = '';
+      };
       reader.readAsText(file);
     });
 
