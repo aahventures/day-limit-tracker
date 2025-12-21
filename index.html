@@ -238,13 +238,19 @@
     .day.outside.in-window {
       background: #f0883e;
     }
-    .day.future {
-      background: #0d1117;
-      opacity: 0.5;
+    .day.today::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background: #f85149;
+      border-radius: 50%;
     }
-    .day.future.outside {
-      background: #1f6feb;
-      opacity: 0.6;
+    .day.today {
+      position: relative;
     }
     .legend {
       display: flex;
@@ -276,6 +282,21 @@
     }
     .legend-box.outside-in-window {
       background: #f0883e;
+    }
+    .legend-box.today {
+      background: #161b22;
+      position: relative;
+    }
+    .legend-box.today::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background: #f85149;
+      border-radius: 50%;
     }
     .tooltip {
       position: fixed;
@@ -353,6 +374,7 @@
     <div class="legend-item"><div class="legend-box outside"></div> Marked</div>
     <div class="legend-item"><div class="legend-box in-window"></div> In window</div>
     <div class="legend-item"><div class="legend-box outside-in-window"></div> Marked (in window)</div>
+    <div class="legend-item"><div class="legend-box today"></div> Today</div>
   </div>
 
   <div class="tooltip" id="tooltip"></div>
@@ -632,8 +654,8 @@
                 const dateStr = dateToString(date);
                 dayDiv.dataset.date = dateStr;
 
-                if (date > today) {
-                  dayDiv.classList.add('future');
+                if (date.getTime() === today.getTime()) {
+                  dayDiv.classList.add('today');
                 }
 
                 const isMarked = outsideDays.has(dateStr);
@@ -648,7 +670,7 @@
                 // Accessibility - tabindex managed by keyboard nav
                 dayDiv.setAttribute('tabindex', '-1');
 
-                // All dates are clickable (including future for planning)
+                // Event listeners
                 dayDiv.addEventListener('click', (e) => handleDayClick(dateStr, e));
                 dayDiv.addEventListener('mouseenter', (e) => showTooltip(dateStr, e));
                 dayDiv.addEventListener('mouseleave', hideTooltip);
