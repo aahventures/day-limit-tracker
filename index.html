@@ -123,6 +123,24 @@
       margin: 20px 0 10px 0;
       color: #8b949e;
     }
+    .calendar-wrapper {
+      display: flex;
+      gap: 3px;
+    }
+    .day-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-top: 17px; /* align with calendar (month label height + gap) */
+    }
+    .day-label {
+      height: 12px;
+      font-size: 9px;
+      color: #8b949e;
+      line-height: 12px;
+      text-align: right;
+      padding-right: 4px;
+    }
     .calendar {
       display: flex;
       gap: 3px;
@@ -450,12 +468,28 @@
 
       const { start: windowStart, end: windowEnd } = getWindowDates();
 
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
       // Render current year and next year
       displayYears.forEach(year => {
         const yearLabel = document.createElement('div');
         yearLabel.className = 'year-label';
         yearLabel.textContent = year;
         container.appendChild(yearLabel);
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'calendar-wrapper';
+
+        // Day of week labels
+        const dayLabels = document.createElement('div');
+        dayLabels.className = 'day-labels';
+        dayNames.forEach(name => {
+          const label = document.createElement('div');
+          label.className = 'day-label';
+          label.textContent = name;
+          dayLabels.appendChild(label);
+        });
+        wrapper.appendChild(dayLabels);
 
         const calendar = document.createElement('div');
         calendar.className = 'calendar';
@@ -548,7 +582,8 @@
           calendar.appendChild(monthDiv);
         });
 
-        container.appendChild(calendar);
+        wrapper.appendChild(calendar);
+        container.appendChild(wrapper);
       });
 
       updateStats();
