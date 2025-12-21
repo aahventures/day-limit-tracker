@@ -1,0 +1,17 @@
+{
+  "name": "day-limit-tracker",
+  "version": "1.0.0",
+  "description": "Calendar visualization for tracking days within a rolling window",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint app.js",
+    "lint:fix": "eslint app.js --fix",
+    "format": "prettier --write app.js index.html",
+    "format:check": "prettier --check app.js index.html"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2"
+  }
+}

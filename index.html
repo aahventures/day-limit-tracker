@@ -1,1122 +1,439 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Day Limit Tracker</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: fit-content;
-      margin: 0 auto;
-      padding: 12px 20px;
-      background: #0d1117;
-      color: #c9d1d9;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 20px;
-    }
-    .header h1 span {
-      color: #8b949e;
-      font-weight: normal;
-      font-size: 14px;
-      margin-left: 8px;
-    }
-    .controls {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    button, .file-label, select {
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-      padding: 5px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    button:hover, .file-label:hover, select:hover {
-      background: #30363d;
-    }
-    input[type="file"] {
-      display: none;
-    }
-    input[type="number"] {
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-      padding: 5px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      width: 50px;
-      text-align: center;
-    }
-    .input-sep {
-      color: #8b949e;
-      font-size: 12px;
-    }
-    .stats {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 10px 16px;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-evenly;
-      flex-wrap: wrap;
-      align-items: flex-start;
-    }
-    .stat {
-      text-align: center;
-      padding: 8px 12px;
-    }
-    .stat-value {
-      font-size: 24px;
-      font-weight: bold;
-    }
-    .stat-label {
-      color: #8b949e;
-      font-size: 11px;
-    }
-    .stat-value.warning {
-      color: #f85149;
-    }
-    .stat-detail {
-      color: #8b949e;
-      font-size: 11px;
-      margin-top: 4px;
-    }
-    .stat.worst-case {
-      cursor: pointer;
-      border-radius: 6px;
-      transition: background 0.2s;
-    }
-    .stat.worst-case:hover, .stat.worst-case:focus {
-      background: #21262d;
-      outline: 2px solid #58a6ff;
-      outline-offset: -2px;
-    }
-    .slider-container {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 10px 16px;
-      margin-bottom: 12px;
-    }
-    .slider-label {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 12px;
-      color: #8b949e;
-    }
-    .slider-dates {
-      color: #c9d1d9;
-    }
-    input[type="range"] {
-      width: 100%;
-      cursor: pointer;
-    }
-    .year-nav {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-    .year-nav span {
-      font-size: 14px;
-      font-weight: 600;
-      color: #c9d1d9;
-    }
-    .year-nav button {
-      padding: 4px 10px;
-      font-size: 14px;
-    }
-    .calendar-container {
-      overflow-x: auto;
-    }
-    .year-label {
-      font-size: 14px;
-      font-weight: 600;
-      margin: 12px 0 6px 0;
-      color: #8b949e;
-    }
-    .year-label:first-child {
-      margin-top: 0;
-    }
-    .calendar-wrapper {
-      display: flex;
-      gap: 3px;
-    }
-    .day-labels {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-top: 17px; /* align with calendar (month label height + gap) */
-    }
-    .day-label {
-      height: 12px;
-      font-size: 9px;
-      color: #8b949e;
-      line-height: 12px;
-      text-align: right;
-      padding-right: 4px;
-    }
-    .calendar {
-      display: flex;
-      gap: 3px;
-    }
-    .month {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .month-label {
-      font-size: 11px;
-      color: #8b949e;
-      height: 15px;
-      text-align: center;
-      border-radius: 3px;
-      padding: 0 2px;
-      cursor: pointer;
-    }
-    .month-label:focus {
-      outline: 2px solid #58a6ff;
-      outline-offset: 1px;
-      color: #c9d1d9;
-    }
-    .weeks {
-      display: flex;
-      gap: 2px;
-    }
-    .week {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .day {
-      width: 12px;
-      height: 12px;
-      background: #161b22;
-      border-radius: 2px;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: all 0.1s;
-    }
-    .day:hover {
-      border-color: #58a6ff;
-    }
-    .day:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px #58a6ff;
-      z-index: 1;
-      position: relative;
-    }
-    .day.marked {
-      background: #1f6feb;
-    }
-    .day.in-window {
-      border-color: #f0883e;
-    }
-    .day.marked.in-window {
-      background: #f0883e;
-    }
-    .day.today::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 4px;
-      height: 4px;
-      background: #f85149;
-      border-radius: 50%;
-    }
-    .day.today {
-      position: relative;
-    }
-    .legend {
-      display: flex;
-      gap: 12px;
-      margin-top: 10px;
-      font-size: 10px;
-      color: #8b949e;
-      flex-wrap: wrap;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .legend-box {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
-    }
-    .legend-box.home {
-      background: #161b22;
-    }
-    .legend-box.marked {
-      background: #1f6feb;
-    }
-    .legend-box.in-window {
-      background: #161b22;
-      border: 1px solid #f0883e;
-    }
-    .legend-box.marked-in-window {
-      background: #f0883e;
-    }
-    .legend-box.today {
-      background: #161b22;
-      position: relative;
-    }
-    .legend-box.today::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 4px;
-      height: 4px;
-      background: #f85149;
-      border-radius: 50%;
-    }
-    .tooltip {
-      position: fixed;
-      background: #21262d;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 8px 12px;
-      font-size: 12px;
-      pointer-events: none;
-      z-index: 1000;
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>Day Limit Tracker <span>Click to toggle days, Shift+click for range</span></h1>
-    <div class="controls">
-      <select id="presetSelect" aria-label="Configuration preset">
-        <option value="custom">Custom</option>
-        <option value="365/90" selected>365 days / 90 limit</option>
-        <option value="180/90">Schengen (180/90)</option>
-      </select>
-      <input type="number" id="windowSizeInput" min="1" max="730" value="365" title="Window size (days)" aria-label="Window size in days">
-      <span class="input-sep">/</span>
-      <input type="number" id="dayLimitInput" min="1" max="365" value="90" title="Day limit" aria-label="Day limit threshold">
-      <label class="file-label">
-        <input type="file" id="fileInput" accept=".json" aria-label="Load dates from JSON file">
-        Load
-      </label>
-      <button id="exportBtn" aria-label="Export marked dates to JSON">Export</button>
-      <button id="clearBtn" aria-label="Clear all marked dates">Clear</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Day Limit Tracker</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        max-width: fit-content;
+        margin: 0 auto;
+        padding: 12px 20px;
+        background: #0d1117;
+        color: #c9d1d9;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .header h1 span {
+        color: #8b949e;
+        font-weight: normal;
+        font-size: 14px;
+        margin-left: 8px;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button,
+      .file-label,
+      select {
+        background: #21262d;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      button:hover,
+      .file-label:hover,
+      select:hover {
+        background: #30363d;
+      }
+      input[type='file'] {
+        display: none;
+      }
+      input[type='number'] {
+        background: #21262d;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 5px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        width: 50px;
+        text-align: center;
+      }
+      .input-sep {
+        color: #8b949e;
+        font-size: 12px;
+      }
+      .stats {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 10px 16px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-evenly;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .stat {
+        text-align: center;
+        padding: 8px 12px;
+      }
+      .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+      }
+      .stat-label {
+        color: #8b949e;
+        font-size: 11px;
+      }
+      .stat-value.warning {
+        color: #f85149;
+      }
+      .stat-detail {
+        color: #8b949e;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      .stat.worst-case {
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background 0.2s;
+      }
+      .stat.worst-case:hover,
+      .stat.worst-case:focus {
+        background: #21262d;
+        outline: 2px solid #58a6ff;
+        outline-offset: -2px;
+      }
+      .slider-container {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 10px 16px;
+        margin-bottom: 12px;
+      }
+      .slider-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .slider-dates {
+        color: #c9d1d9;
+      }
+      input[type='range'] {
+        width: 100%;
+        cursor: pointer;
+      }
+      .year-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .year-nav span {
+        font-size: 14px;
+        font-weight: 600;
+        color: #c9d1d9;
+      }
+      .year-nav button {
+        padding: 4px 10px;
+        font-size: 14px;
+      }
+      .calendar-container {
+        overflow-x: auto;
+      }
+      .year-label {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 12px 0 6px 0;
+        color: #8b949e;
+      }
+      .year-label:first-child {
+        margin-top: 0;
+      }
+      .calendar-wrapper {
+        display: flex;
+        gap: 3px;
+      }
+      .day-labels {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-top: 17px; /* align with calendar (month label height + gap) */
+      }
+      .day-label {
+        height: 12px;
+        font-size: 9px;
+        color: #8b949e;
+        line-height: 12px;
+        text-align: right;
+        padding-right: 4px;
+      }
+      .calendar {
+        display: flex;
+        gap: 3px;
+      }
+      .month {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .month-label {
+        font-size: 11px;
+        color: #8b949e;
+        height: 15px;
+        text-align: center;
+        border-radius: 3px;
+        padding: 0 2px;
+        cursor: pointer;
+      }
+      .month-label:focus {
+        outline: 2px solid #58a6ff;
+        outline-offset: 1px;
+        color: #c9d1d9;
+      }
+      .weeks {
+        display: flex;
+        gap: 2px;
+      }
+      .week {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .day {
+        width: 12px;
+        height: 12px;
+        background: #161b22;
+        border-radius: 2px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.1s;
+      }
+      .day:hover {
+        border-color: #58a6ff;
+      }
+      .day:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #58a6ff;
+        z-index: 1;
+        position: relative;
+      }
+      .day.marked {
+        background: #1f6feb;
+      }
+      .day.in-window {
+        border-color: #f0883e;
+      }
+      .day.marked.in-window {
+        background: #f0883e;
+      }
+      .day.today::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 4px;
+        height: 4px;
+        background: #f85149;
+        border-radius: 50%;
+      }
+      .day.today {
+        position: relative;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+        font-size: 10px;
+        color: #8b949e;
+        flex-wrap: wrap;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .legend-box {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+      }
+      .legend-box.home {
+        background: #161b22;
+      }
+      .legend-box.marked {
+        background: #1f6feb;
+      }
+      .legend-box.in-window {
+        background: #161b22;
+        border: 1px solid #f0883e;
+      }
+      .legend-box.marked-in-window {
+        background: #f0883e;
+      }
+      .legend-box.today {
+        background: #161b22;
+        position: relative;
+      }
+      .legend-box.today::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 4px;
+        height: 4px;
+        background: #f85149;
+        border-radius: 50%;
+      }
+      .tooltip {
+        position: fixed;
+        background: #21262d;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 1000;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Day Limit Tracker <span>Click to toggle days, Shift+click for range</span></h1>
+      <div class="controls">
+        <select id="presetSelect" aria-label="Configuration preset">
+          <option value="custom">Custom</option>
+          <option value="365/90" selected>365 days / 90 limit</option>
+          <option value="180/90">Schengen (180/90)</option>
+        </select>
+        <input
+          type="number"
+          id="windowSizeInput"
+          min="1"
+          max="730"
+          value="365"
+          title="Window size (days)"
+          aria-label="Window size in days"
+        />
+        <span class="input-sep">/</span>
+        <input
+          type="number"
+          id="dayLimitInput"
+          min="1"
+          max="365"
+          value="90"
+          title="Day limit"
+          aria-label="Day limit threshold"
+        />
+        <label class="file-label">
+          <input type="file" id="fileInput" accept=".json" aria-label="Load dates from JSON file" />
+          Load
+        </label>
+        <button id="exportBtn" aria-label="Export marked dates to JSON">Export</button>
+        <button id="clearBtn" aria-label="Clear all marked dates">Clear</button>
+      </div>
     </div>
-  </div>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-value" id="daysInWindow">0</div>
-      <div class="stat-label">Marked (in window)</div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="daysInWindow">0</div>
+        <div class="stat-label">Marked (in window)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="daysRemaining">90</div>
+        <div class="stat-label" id="remainingLabel">Remaining (of 90)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="totalDays">0</div>
+        <div class="stat-label">Total marked</div>
+      </div>
+      <div
+        class="stat worst-case"
+        title="Click to jump to this window"
+        role="button"
+        tabindex="0"
+        aria-label="Worst window - click to jump"
+      >
+        <div class="stat-value" id="maxDays">0</div>
+        <div class="stat-label">Worst window</div>
+        <div class="stat-detail" id="maxWindowDates"></div>
+      </div>
     </div>
-    <div class="stat">
-      <div class="stat-value" id="daysRemaining">90</div>
-      <div class="stat-label" id="remainingLabel">Remaining (of 90)</div>
+
+    <div class="slider-container">
+      <div class="slider-label">
+        <span id="windowLabel">365-day window:</span>
+        <span class="slider-dates" id="windowDates"></span>
+      </div>
+      <input
+        type="range"
+        id="windowSlider"
+        min="364"
+        max="730"
+        value="365"
+        aria-label="Slide to adjust rolling window end date"
+      />
     </div>
-    <div class="stat">
-      <div class="stat-value" id="totalDays">0</div>
-      <div class="stat-label">Total marked</div>
+
+    <div class="year-nav" role="navigation" aria-label="Year navigation">
+      <button id="prevYears" aria-label="Previous years">&larr;</button>
+      <span id="yearRange"></span>
+      <button id="nextYears" aria-label="Next years">&rarr;</button>
+      <button id="todayBtn" aria-label="Jump to today">Today</button>
     </div>
-    <div class="stat worst-case" title="Click to jump to this window" role="button" tabindex="0" aria-label="Worst window - click to jump">
-      <div class="stat-value" id="maxDays">0</div>
-      <div class="stat-label">Worst window</div>
-      <div class="stat-detail" id="maxWindowDates"></div>
+
+    <div
+      class="calendar-container"
+      id="calendarContainer"
+      role="application"
+      aria-label="Calendar navigation: arrows to move, Enter to select, Escape to go back"
+    ></div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-box home"></div>
+        Unmarked
+      </div>
+      <div class="legend-item">
+        <div class="legend-box marked"></div>
+        Marked
+      </div>
+      <div class="legend-item">
+        <div class="legend-box in-window"></div>
+        In window
+      </div>
+      <div class="legend-item">
+        <div class="legend-box marked-in-window"></div>
+        Marked (in window)
+      </div>
+      <div class="legend-item">
+        <div class="legend-box today"></div>
+        Today
+      </div>
     </div>
-  </div>
 
-  <div class="slider-container">
-    <div class="slider-label">
-      <span id="windowLabel">365-day window:</span>
-      <span class="slider-dates" id="windowDates"></span>
-    </div>
-    <input type="range" id="windowSlider" min="364" max="730" value="365" aria-label="Slide to adjust rolling window end date">
-  </div>
+    <div class="tooltip" id="tooltip"></div>
 
-  <div class="year-nav" role="navigation" aria-label="Year navigation">
-    <button id="prevYears" aria-label="Previous years">&larr;</button>
-    <span id="yearRange"></span>
-    <button id="nextYears" aria-label="Next years">&rarr;</button>
-    <button id="todayBtn" aria-label="Jump to today">Today</button>
-  </div>
-
-  <div class="calendar-container" id="calendarContainer" role="application" aria-label="Calendar navigation: arrows to move, Enter to select, Escape to go back"></div>
-
-  <div class="legend">
-    <div class="legend-item"><div class="legend-box home"></div> Unmarked</div>
-    <div class="legend-item"><div class="legend-box marked"></div> Marked</div>
-    <div class="legend-item"><div class="legend-box in-window"></div> In window</div>
-    <div class="legend-item"><div class="legend-box marked-in-window"></div> Marked (in window)</div>
-    <div class="legend-item"><div class="legend-box today"></div> Today</div>
-  </div>
-
-  <div class="tooltip" id="tooltip"></div>
-
-  <script>
-    // State
-    let markedDays = new Set(); // Set of date strings "YYYY-MM-DD"
-    let lastClickedDate = null;
-
-    // Configurable settings
-    let windowSize = 365; // Rolling window size in days
-    let dayLimit = 90;    // Max marked days allowed
-
-    // Date utilities
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const currentYear = today.getFullYear();
-
-    // 3-year sliding window (can be shifted with nav buttons)
-    let baseYear = currentYear - 1; // Start with last year
-
-    // Keyboard navigation state
-    let navLevel = 'month'; // 'month' or 'day'
-    let focusedYear = currentYear;
-    let focusedMonth = today.getMonth();
-    let focusedDate = dateToString(today);
-
-    function getDisplayYears() {
-      return [baseYear, baseYear + 1, baseYear + 2];
-    }
-
-    function getDateRange() {
-      const startDate = new Date(baseYear, 0, 1);
-      const endDate = new Date(baseYear + 2, 11, 31);
-      const totalDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
-      return { startDate, endDate, totalDays };
-    }
-
-    // Default slider to today's date (clamped to visible range)
-    function getDefaultOffset() {
-      const { startDate, totalDays } = getDateRange();
-      const offset = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
-      return Math.max(windowSize - 1, Math.min(offset, totalDays));
-    }
-
-    let windowEndOffset = getDefaultOffset();
-
-    function dateToString(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
-    function stringToDate(str) {
-      const [y, m, d] = str.split('-').map(Number);
-      return new Date(y, m - 1, d);
-    }
-
-    function addDays(date, days) {
-      const result = new Date(date);
-      result.setDate(result.getDate() + days);
-      return result;
-    }
-
-    function daysBetween(date1, date2) {
-      const d1 = new Date(date1);
-      const d2 = new Date(date2);
-      d1.setHours(0, 0, 0, 0);
-      d2.setHours(0, 0, 0, 0);
-      return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
-    }
-
-    function formatDate(date) {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
-    // Get window dates based on slider
-    function getWindowDates() {
-      const { startDate } = getDateRange();
-      const endDate = addDays(startDate, windowEndOffset);
-      const startWindowDate = addDays(endDate, -(windowSize - 1)); // windowSize days inclusive
-      return { start: startWindowDate, end: endDate };
-    }
-
-    // Calculate marked days in a specific window
-    function calculateDaysInWindowRange(windowStart, windowEnd) {
-      let count = 0;
-      markedDays.forEach(dateStr => {
-        const date = stringToDate(dateStr);
-        if (date >= windowStart && date <= windowEnd) {
-          count++;
-        }
-      });
-      return count;
-    }
-
-    // Calculate marked days in current window
-    function calculateDaysInWindow() {
-      const { start, end } = getWindowDates();
-      return calculateDaysInWindowRange(start, end);
-    }
-
-    // Find the window with maximum marked days
-    let maxWindowOffset = null;
-    function findMaxWindow() {
-      const minOffset = windowSize - 1;
-      if (markedDays.size === 0) {
-        return { maxDays: 0, offset: minOffset, start: null, end: null };
-      }
-
-      const { startDate, totalDays } = getDateRange();
-      let maxDays = 0;
-      let bestOffset = minOffset;
-
-      // Scan all possible windows (sliding by day)
-      for (let offset = minOffset; offset <= totalDays; offset++) {
-        const windowEnd = addDays(startDate, offset);
-        const windowStart = addDays(windowEnd, -(windowSize - 1));
-        const days = calculateDaysInWindowRange(windowStart, windowEnd);
-
-        if (days > maxDays) {
-          maxDays = days;
-          bestOffset = offset;
-        }
-      }
-
-      const bestEnd = addDays(startDate, bestOffset);
-      const bestStart = addDays(bestEnd, -(windowSize - 1));
-
-      return { maxDays, offset: bestOffset, start: bestStart, end: bestEnd };
-    }
-
-    // Update stats display
-    function updateStats() {
-      const daysInWindow = calculateDaysInWindow();
-      const daysRemaining = Math.max(0, dayLimit - daysInWindow);
-
-      const daysInWindowEl = document.getElementById('daysInWindow');
-      const daysRemainingEl = document.getElementById('daysRemaining');
-
-      daysInWindowEl.textContent = daysInWindow;
-      daysRemainingEl.textContent = daysRemaining;
-      document.getElementById('totalDays').textContent = markedDays.size;
-
-      // Update dynamic label
-      document.getElementById('remainingLabel').textContent = `Remaining (of ${dayLimit})`;
-
-      // Marked (in window) - always white
-      daysInWindowEl.className = 'stat-value';
-      daysInWindowEl.style.color = '';
-
-      // Remaining - gradient from green (100%) to red (0%)
-      const ratio = daysRemaining / dayLimit; // 1 = full, 0 = empty
-      const hue = Math.round(ratio * 120); // 120 = green, 0 = red
-      daysRemainingEl.className = 'stat-value';
-      daysRemainingEl.style.color = `hsl(${hue}, 70%, 55%)`;
-
-      // Update window dates display
-      const { start, end } = getWindowDates();
-      document.getElementById('windowDates').textContent =
-        `${formatDate(start)} - ${formatDate(end)}`;
-
-      // Update max window stats
-      const maxWindow = findMaxWindow();
-      maxWindowOffset = maxWindow.offset;
-      const maxDaysEl = document.getElementById('maxDays');
-      maxDaysEl.textContent = maxWindow.maxDays;
-
-      // Worst window - white until over limit, then red
-      if (maxWindow.maxDays > dayLimit) {
-        maxDaysEl.className = 'stat-value warning';
-      } else {
-        maxDaysEl.className = 'stat-value';
-      }
-
-      if (maxWindow.start && maxWindow.end) {
-        document.getElementById('maxWindowDates').textContent =
-          `${formatDate(maxWindow.start)} - ${formatDate(maxWindow.end)}`;
-      } else {
-        document.getElementById('maxWindowDates').textContent = '';
-      }
-    }
-
-    // Render calendar
-    function renderCalendar() {
-      const container = document.getElementById('calendarContainer');
-      container.innerHTML = '';
-
-      const { start: windowStart, end: windowEnd } = getWindowDates();
-
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-      // Render 3-year window
-      getDisplayYears().forEach(year => {
-        const yearLabel = document.createElement('div');
-        yearLabel.className = 'year-label';
-        yearLabel.textContent = year;
-        container.appendChild(yearLabel);
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'calendar-wrapper';
-
-        // Day of week labels
-        const dayLabels = document.createElement('div');
-        dayLabels.className = 'day-labels';
-        dayNames.forEach(name => {
-          const label = document.createElement('div');
-          label.className = 'day-label';
-          label.textContent = name;
-          dayLabels.appendChild(label);
-        });
-        wrapper.appendChild(dayLabels);
-
-        const calendar = document.createElement('div');
-        calendar.className = 'calendar';
-
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-        months.forEach((monthName, monthIndex) => {
-          const monthDiv = document.createElement('div');
-          monthDiv.className = 'month';
-
-          const monthLabel = document.createElement('div');
-          monthLabel.className = 'month-label';
-          monthLabel.textContent = monthName;
-          monthLabel.dataset.year = year;
-          monthLabel.dataset.month = monthIndex;
-          // Set tabindex: 0 for focused month (tab entry point), -1 for others
-          const isFocusedMonth = (year === focusedYear && monthIndex === focusedMonth);
-          monthLabel.setAttribute('tabindex', isFocusedMonth ? '0' : '-1');
-          monthLabel.setAttribute('role', 'button');
-          monthLabel.setAttribute('aria-label', `${monthName} ${year}`);
-          monthDiv.appendChild(monthLabel);
-
-          const weeksDiv = document.createElement('div');
-          weeksDiv.className = 'weeks';
-
-          const firstDay = new Date(year, monthIndex, 1);
-          const lastDay = new Date(year, monthIndex + 1, 0);
-          const daysInMonth = lastDay.getDate();
-
-          // Group days into weeks
-          let currentWeek = [];
-          const weeks = [];
-
-          // Add empty cells for days before the first of the month
-          const firstDayOfWeek = firstDay.getDay();
-          for (let i = 0; i < firstDayOfWeek; i++) {
-            currentWeek.push(null);
-          }
-
-          for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(year, monthIndex, day);
-            currentWeek.push(date);
-
-            if (currentWeek.length === 7) {
-              weeks.push(currentWeek);
-              currentWeek = [];
-            }
-          }
-
-          if (currentWeek.length > 0) {
-            while (currentWeek.length < 7) {
-              currentWeek.push(null);
-            }
-            weeks.push(currentWeek);
-          }
-
-          weeks.forEach(week => {
-            const weekDiv = document.createElement('div');
-            weekDiv.className = 'week';
-
-            week.forEach(date => {
-              const dayDiv = document.createElement('div');
-              dayDiv.className = 'day';
-
-              if (date) {
-                const dateStr = dateToString(date);
-                dayDiv.dataset.date = dateStr;
-
-                if (date.getTime() === today.getTime()) {
-                  dayDiv.classList.add('today');
-                }
-
-                const isMarked = markedDays.has(dateStr);
-                if (isMarked) {
-                  dayDiv.classList.add('marked');
-                }
-
-                if (date >= windowStart && date <= windowEnd) {
-                  dayDiv.classList.add('in-window');
-                }
-
-                // Accessibility - tabindex managed by keyboard nav
-                dayDiv.setAttribute('tabindex', '-1');
-
-                // Event listeners
-                dayDiv.addEventListener('click', (e) => handleDayClick(dateStr, e));
-                dayDiv.addEventListener('mouseenter', (e) => showTooltip(dateStr, e));
-                dayDiv.addEventListener('mouseleave', hideTooltip);
-                dayDiv.addEventListener('focus', () => showTooltip(dateStr, dayDiv));
-                dayDiv.addEventListener('blur', hideTooltip);
-              } else {
-                dayDiv.style.visibility = 'hidden';
-              }
-
-              weekDiv.appendChild(dayDiv);
-            });
-
-            weeksDiv.appendChild(weekDiv);
-          });
-
-          monthDiv.appendChild(weeksDiv);
-          calendar.appendChild(monthDiv);
-        });
-
-        wrapper.appendChild(calendar);
-        container.appendChild(wrapper);
-      });
-
-      updateStats();
-    }
-
-    // Handle day click
-    function handleDayClick(dateStr, event) {
-      if (event.shiftKey && lastClickedDate) {
-        // Range selection
-        const start = stringToDate(lastClickedDate);
-        const end = stringToDate(dateStr);
-        const [from, to] = start < end ? [start, end] : [end, start];
-
-        const shouldAdd = !markedDays.has(dateStr);
-        let current = new Date(from);
-
-        while (current <= to) {
-          const str = dateToString(current);
-          if (shouldAdd) {
-            markedDays.add(str);
-          } else {
-            markedDays.delete(str);
-          }
-          current = addDays(current, 1);
-        }
-      } else {
-        // Single toggle
-        if (markedDays.has(dateStr)) {
-          markedDays.delete(dateStr);
-        } else {
-          markedDays.add(dateStr);
-        }
-      }
-
-      lastClickedDate = dateStr;
-      renderCalendar();
-    }
-
-    // Tooltip
-    function showTooltip(dateStr, eventOrElement) {
-      const tooltip = document.getElementById('tooltip');
-      const date = stringToDate(dateStr);
-      const isOutside = markedDays.has(dateStr);
-      const { start, end } = getWindowDates();
-      const inWindow = date >= start && date <= end;
-
-      tooltip.innerHTML = `
-        <div>${formatDate(date)}</div>
-        <div>${isOutside ? 'Marked' : 'Unmarked'}</div>
-        ${inWindow ? '<div style="color: #f0883e">In current window</div>' : ''}
-      `;
-
-      tooltip.style.display = 'block';
-
-      // Position tooltip, avoiding viewport overflow
-      const tooltipRect = tooltip.getBoundingClientRect();
-      let left, top;
-
-      if (eventOrElement.clientX !== undefined) {
-        // Mouse event - position near cursor
-        left = eventOrElement.clientX + 10;
-        top = eventOrElement.clientY + 10;
-      } else {
-        // Element (keyboard focus) - position near element
-        const elRect = eventOrElement.getBoundingClientRect();
-        left = elRect.right + 5;
-        top = elRect.top;
-      }
-
-      if (left + tooltipRect.width > window.innerWidth) {
-        left = (eventOrElement.clientX ?? eventOrElement.getBoundingClientRect().left) - tooltipRect.width - 10;
-      }
-      if (top + tooltipRect.height > window.innerHeight) {
-        top = (eventOrElement.clientY ?? eventOrElement.getBoundingClientRect().bottom) - tooltipRect.height - 10;
-      }
-
-      tooltip.style.left = left + 'px';
-      tooltip.style.top = top + 'px';
-    }
-
-    function hideTooltip() {
-      document.getElementById('tooltip').style.display = 'none';
-    }
-
-    // File handling
-    const fileInput = document.getElementById('fileInput');
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target.result);
-          markedDays.clear();
-
-          data.forEach(range => {
-            const start = stringToDate(range.start);
-            const end = stringToDate(range.end);
-            let current = new Date(start);
-
-            while (current <= end) {
-              markedDays.add(dateToString(current));
-              current = addDays(current, 1);
-            }
-          });
-
-          renderCalendar();
-        } catch (err) {
-          alert('Error parsing JSON file: ' + err.message);
-        }
-        // Reset input so the same file can be loaded again
-        fileInput.value = '';
-      };
-      reader.onerror = () => {
-        alert('Error reading file');
-        fileInput.value = '';
-      };
-      reader.readAsText(file);
-    });
-
-    // Export
-    document.getElementById('exportBtn').addEventListener('click', () => {
-      // Group consecutive days into ranges
-      const sortedDays = Array.from(markedDays).sort();
-      const ranges = [];
-      let currentRange = null;
-
-      sortedDays.forEach(dateStr => {
-        if (!currentRange) {
-          currentRange = { start: dateStr, end: dateStr };
-        } else {
-          const lastDate = stringToDate(currentRange.end);
-          const thisDate = stringToDate(dateStr);
-          const diff = daysBetween(lastDate, thisDate);
-
-          if (diff === 1) {
-            currentRange.end = dateStr;
-          } else {
-            ranges.push(currentRange);
-            currentRange = { start: dateStr, end: dateStr };
-          }
-        }
-      });
-
-      if (currentRange) {
-        ranges.push(currentRange);
-      }
-
-      const json = JSON.stringify(ranges, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'marked-dates.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    // Clear
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      if (confirm('Clear all marked days?')) {
-        markedDays.clear();
-        renderCalendar();
-      }
-    });
-
-    // Slider setup
-    const slider = document.getElementById('windowSlider');
-
-    function updateSliderRange() {
-      const { totalDays } = getDateRange();
-      slider.min = windowSize - 1;
-      slider.max = totalDays;
-      slider.value = windowEndOffset;
-      document.getElementById('windowLabel').textContent = `${windowSize}-day window:`;
-    }
-
-    // Jump to worst-case window
-    const worstCaseStat = document.querySelector('.stat.worst-case');
-    function jumpToWorstWindow() {
-      if (maxWindowOffset !== null) {
-        windowEndOffset = maxWindowOffset;
-        slider.value = maxWindowOffset;
-        renderCalendar();
-      }
-    }
-    worstCaseStat.addEventListener('click', jumpToWorstWindow);
-    worstCaseStat.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        jumpToWorstWindow();
-      }
-    });
-
-    // Year navigation
-    function shiftYears(delta) {
-      baseYear += delta;
-      windowEndOffset = getDefaultOffset();
-      updateSliderRange();
-      renderCalendar();
-      updateYearNav();
-    }
-
-    function updateYearNav() {
-      const years = getDisplayYears();
-      document.getElementById('yearRange').textContent = `${years[0]} - ${years[2]}`;
-    }
-
-    document.getElementById('prevYears').addEventListener('click', () => shiftYears(-1));
-    document.getElementById('nextYears').addEventListener('click', () => shiftYears(1));
-
-    // Jump to today
-    document.getElementById('todayBtn').addEventListener('click', () => {
-      baseYear = currentYear - 1; // Reset to default year range
-      windowEndOffset = getDefaultOffset();
-      updateSliderRange();
-      updateYearNav();
-      renderCalendar();
-    });
-
-    // Config inputs
-    const presetSelect = document.getElementById('presetSelect');
-    const windowSizeInput = document.getElementById('windowSizeInput');
-    const dayLimitInput = document.getElementById('dayLimitInput');
-
-    function applyConfig() {
-      // Validate window size (min 1, max 730)
-      let ws = parseInt(windowSizeInput.value);
-      if (isNaN(ws) || ws < 1) ws = 365;
-      if (ws > 730) ws = 730;
-      windowSize = ws;
-      windowSizeInput.value = ws;
-
-      // Update dayLimit max to match windowSize
-      dayLimitInput.max = ws;
-
-      // Validate day limit (min 1, max windowSize)
-      let dl = parseInt(dayLimitInput.value);
-      if (isNaN(dl) || dl < 1) dl = 90;
-      if (dl > ws) dl = ws;
-      dayLimit = dl;
-      dayLimitInput.value = dl;
-
-      windowEndOffset = getDefaultOffset();
-      updateSliderRange();
-      renderCalendar();
-    }
-
-    presetSelect.addEventListener('change', (e) => {
-      const value = e.target.value;
-      if (value !== 'custom') {
-        const [ws, dl] = value.split('/').map(Number);
-        windowSizeInput.value = ws;
-        dayLimitInput.value = dl;
-        applyConfig();
-      }
-    });
-
-    windowSizeInput.addEventListener('change', () => {
-      presetSelect.value = 'custom';
-      applyConfig();
-    });
-
-    dayLimitInput.addEventListener('change', () => {
-      presetSelect.value = 'custom';
-      applyConfig();
-    });
-
-    updateSliderRange();
-
-    slider.addEventListener('input', (e) => {
-      windowEndOffset = parseInt(e.target.value);
-      renderCalendar();
-    });
-
-    // Keyboard navigation functions
-    function getMonthLabel(year, month) {
-      return document.querySelector(`.month-label[data-year="${year}"][data-month="${month}"]`);
-    }
-
-    function getDayElement(dateStr) {
-      return document.querySelector(`.day[data-date="${dateStr}"]`);
-    }
-
-    function getAllDaysInMonth(year, month) {
-      const days = [];
-      const container = document.getElementById('calendarContainer');
-      container.querySelectorAll(`.day[data-date^="${year}-${String(month + 1).padStart(2, '0')}"]`).forEach(el => {
-        if (el.dataset.date) days.push(el.dataset.date);
-      });
-      return days.sort();
-    }
-
-    function focusMonth(year, month) {
-      // Clamp to displayed years
-      const years = getDisplayYears();
-      if (year < years[0]) { year = years[0]; }
-      if (year > years[2]) { year = years[2]; }
-      if (month < 0) { month = 11; year--; }
-      if (month > 11) { month = 0; year++; }
-      // Re-clamp after wrap
-      if (year < years[0]) { year = years[2]; month = 11; }
-      if (year > years[2]) { year = years[0]; month = 0; }
-
-      focusedYear = year;
-      focusedMonth = month;
-      const label = getMonthLabel(year, month);
-      if (label) {
-        label.setAttribute('tabindex', '0');
-        label.focus();
-        // Reset other month tabindexes
-        document.querySelectorAll('.month-label').forEach(el => {
-          if (el !== label) el.setAttribute('tabindex', '-1');
-        });
-      }
-    }
-
-    function focusDay(dateStr) {
-      const el = getDayElement(dateStr);
-      if (el) {
-        focusedDate = dateStr;
-        el.setAttribute('tabindex', '0');
-        el.focus();
-        // Reset other day tabindexes
-        document.querySelectorAll('.day[data-date]').forEach(d => {
-          if (d !== el) d.setAttribute('tabindex', '-1');
-        });
-        // Tooltip shown via focus event listener
-      }
-    }
-
-    function getFirstDayOfMonth(year, month) {
-      const days = getAllDaysInMonth(year, month);
-      return days.length > 0 ? days[0] : null;
-    }
-
-    function navigateDay(dateStr, direction) {
-      const date = stringToDate(dateStr);
-      let newDate;
-
-      if (direction === 'up') {
-        newDate = addDays(date, -1);
-      } else if (direction === 'down') {
-        newDate = addDays(date, 1);
-      } else if (direction === 'left') {
-        newDate = addDays(date, -7);
-      } else if (direction === 'right') {
-        newDate = addDays(date, 7);
-      }
-
-      const newDateStr = dateToString(newDate);
-      const el = getDayElement(newDateStr);
-      if (el) {
-        focusDay(newDateStr);
-        // Update focused month if we crossed into a new month
-        focusedYear = newDate.getFullYear();
-        focusedMonth = newDate.getMonth();
-      }
-      // If no element found, stay on current day (don't lose focus)
-    }
-
-    // Make calendar container handle keyboard events
-    const calendarContainer = document.getElementById('calendarContainer');
-    calendarContainer.addEventListener('keydown', (e) => {
-      if (navLevel === 'month') {
-        if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          focusMonth(focusedYear, focusedMonth - 1);
-        } else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          focusMonth(focusedYear, focusedMonth + 1);
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          focusMonth(focusedYear - 1, focusedMonth);
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          focusMonth(focusedYear + 1, focusedMonth);
-        } else if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
-          e.preventDefault();
-          navLevel = 'day';
-          const firstDay = getFirstDayOfMonth(focusedYear, focusedMonth);
-          if (firstDay) {
-            focusDay(firstDay);
-          }
-        }
-        // Shift+Tab: let browser handle it (exits calendar to previous element)
-      } else if (navLevel === 'day') {
-        if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          navigateDay(focusedDate, 'up');
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          navigateDay(focusedDate, 'down');
-        } else if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          navigateDay(focusedDate, 'left');
-        } else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          navigateDay(focusedDate, 'right');
-        } else if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleDayClick(focusedDate, e);
-          // Refocus after render (DOM was rebuilt)
-          setTimeout(() => focusDay(focusedDate), 0);
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          navLevel = 'month';
-          focusMonth(focusedYear, focusedMonth);
-        } else if (e.key === 'Tab' && e.shiftKey) {
-          e.preventDefault();
-          navLevel = 'month';
-          focusMonth(focusedYear, focusedMonth);
-        } else if (e.key === 'Tab' && !e.shiftKey) {
-          // Let browser handle it (exits calendar to next element)
-          navLevel = 'month'; // Reset for next time we tab back in
-          // Tooltip hidden via blur event listener
-        }
-      }
-    });
-
-    // Initial render
-    updateYearNav();
-    renderCalendar();
-  </script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
