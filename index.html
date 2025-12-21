@@ -652,6 +652,8 @@
                 dayDiv.addEventListener('click', (e) => handleDayClick(dateStr, e));
                 dayDiv.addEventListener('mouseenter', (e) => showTooltip(dateStr, e));
                 dayDiv.addEventListener('mouseleave', hideTooltip);
+                dayDiv.addEventListener('focus', () => showTooltip(dateStr, dayDiv));
+                dayDiv.addEventListener('blur', hideTooltip);
               } else {
                 dayDiv.style.visibility = 'hidden';
               }
@@ -707,7 +709,7 @@
     }
 
     // Tooltip
-    function showTooltip(dateStr, event) {
+    function showTooltip(dateStr, eventOrElement) {
       const tooltip = document.getElementById('tooltip');
       const date = stringToDate(dateStr);
       const isOutside = outsideDays.has(dateStr);
@@ -723,15 +725,25 @@
       tooltip.style.display = 'block';
 
       // Position tooltip, avoiding viewport overflow
-      const rect = tooltip.getBoundingClientRect();
-      let left = event.clientX + 10;
-      let top = event.clientY + 10;
+      const tooltipRect = tooltip.getBoundingClientRect();
+      let left, top;
 
-      if (left + rect.width > window.innerWidth) {
-        left = event.clientX - rect.width - 10;
+      if (eventOrElement.clientX !== undefined) {
+        // Mouse event - position near cursor
+        left = eventOrElement.clientX + 10;
+        top = eventOrElement.clientY + 10;
+      } else {
+        // Element (keyboard focus) - position near element
+        const elRect = eventOrElement.getBoundingClientRect();
+        left = elRect.right + 5;
+        top = elRect.top;
       }
-      if (top + rect.height > window.innerHeight) {
-        top = event.clientY - rect.height - 10;
+
+      if (left + tooltipRect.width > window.innerWidth) {
+        left = (eventOrElement.clientX ?? eventOrElement.getBoundingClientRect().left) - tooltipRect.width - 10;
+      }
+      if (top + tooltipRect.height > window.innerHeight) {
+        top = (eventOrElement.clientY ?? eventOrElement.getBoundingClientRect().bottom) - tooltipRect.height - 10;
       }
 
       tooltip.style.left = left + 'px';
@@ -982,6 +994,7 @@
         document.querySelectorAll('.day[data-date]').forEach(d => {
           if (d !== el) d.setAttribute('tabindex', '-1');
         });
+        // Tooltip shown via focus event listener
       }
     }
 
@@ -1069,6 +1082,7 @@
         } else if (e.key === 'Tab' && !e.shiftKey) {
           // Let browser handle it (exits calendar to next element)
           navLevel = 'month'; // Reset for next time we tab back in
+          // Tooltip hidden via blur event listener
         }
       }
     });
