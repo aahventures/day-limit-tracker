@@ -827,8 +827,23 @@
     const dayLimitInput = document.getElementById('dayLimitInput');
 
     function applyConfig() {
-      windowSize = parseInt(windowSizeInput.value) || 365;
-      dayLimit = parseInt(dayLimitInput.value) || 90;
+      // Validate window size (min 1, max 730)
+      let ws = parseInt(windowSizeInput.value);
+      if (isNaN(ws) || ws < 1) ws = 365;
+      if (ws > 730) ws = 730;
+      windowSize = ws;
+      windowSizeInput.value = ws;
+
+      // Update dayLimit max to match windowSize
+      dayLimitInput.max = ws;
+
+      // Validate day limit (min 1, max windowSize)
+      let dl = parseInt(dayLimitInput.value);
+      if (isNaN(dl) || dl < 1) dl = 90;
+      if (dl > ws) dl = ws;
+      dayLimit = dl;
+      dayLimitInput.value = dl;
+
       windowEndOffset = getDefaultOffset();
       updateSliderRange();
       renderCalendar();
