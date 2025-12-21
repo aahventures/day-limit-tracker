@@ -12,21 +12,31 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 12px 20px;
       background: #0d1117;
       color: #c9d1d9;
     }
-    h1 {
-      margin-bottom: 10px;
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
     }
-    .subtitle {
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .header h1 span {
       color: #8b949e;
-      margin-bottom: 20px;
+      font-weight: normal;
+      font-size: 14px;
+      margin-left: 8px;
     }
     .controls {
       display: flex;
-      gap: 15px;
-      margin-bottom: 20px;
+      gap: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
@@ -34,10 +44,10 @@
       background: #21262d;
       border: 1px solid #30363d;
       color: #c9d1d9;
-      padding: 8px 16px;
-      border-radius: 6px;
+      padding: 5px 12px;
+      border-radius: 4px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 12px;
     }
     button:hover, .file-label:hover {
       background: #30363d;
@@ -49,22 +59,23 @@
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 6px;
-      padding: 15px 20px;
-      margin-bottom: 20px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
       display: flex;
-      gap: 30px;
+      gap: 24px;
       flex-wrap: wrap;
+      align-items: center;
     }
     .stat {
       text-align: center;
     }
     .stat-value {
-      font-size: 32px;
+      font-size: 24px;
       font-weight: bold;
     }
     .stat-label {
       color: #8b949e;
-      font-size: 12px;
+      font-size: 11px;
     }
     .stat-value.warning {
       color: #f85149;
@@ -98,14 +109,14 @@
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 6px;
-      padding: 15px 20px;
-      margin-bottom: 20px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
     }
     .slider-label {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
-      font-size: 14px;
+      margin-bottom: 6px;
+      font-size: 12px;
     }
     .slider-dates {
       color: #8b949e;
@@ -118,10 +129,13 @@
       overflow-x: auto;
     }
     .year-label {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
-      margin: 20px 0 10px 0;
+      margin: 12px 0 6px 0;
       color: #8b949e;
+    }
+    .year-label:first-child {
+      margin-top: 0;
     }
     .calendar-wrapper {
       display: flex;
@@ -200,20 +214,20 @@
     }
     .legend {
       display: flex;
-      gap: 20px;
-      margin-top: 20px;
-      font-size: 12px;
+      gap: 12px;
+      margin-top: 10px;
+      font-size: 10px;
       color: #8b949e;
       flex-wrap: wrap;
     }
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
     .legend-box {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 2px;
     }
     .legend-box.home {
@@ -240,36 +254,19 @@
       z-index: 1000;
       display: none;
     }
-    .instructions {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 15px;
-      margin-bottom: 20px;
-      font-size: 13px;
-      color: #8b949e;
-    }
-    .instructions strong {
-      color: #c9d1d9;
-    }
   </style>
 </head>
 <body>
-  <h1>90-Day Travel Tracker</h1>
-  <p class="subtitle">Track days outside a country within a rolling 365-day window</p>
-
-  <div class="instructions">
-    <strong>How to use:</strong> Click days to mark as outside country. Shift+click to select a range.
-    Load existing data or export your schedule as JSON.
-  </div>
-
-  <div class="controls">
-    <label class="file-label">
-      <input type="file" id="fileInput" accept=".json">
-      Load JSON
-    </label>
-    <button id="exportBtn">Export JSON</button>
-    <button id="clearBtn">Clear All</button>
+  <div class="header">
+    <h1>90-Day Travel Tracker <span>Click to toggle days, Shift+click for range</span></h1>
+    <div class="controls">
+      <label class="file-label">
+        <input type="file" id="fileInput" accept=".json">
+        Load
+      </label>
+      <button id="exportBtn">Export</button>
+      <button id="clearBtn">Clear</button>
+    </div>
   </div>
 
   <div class="stats">
