@@ -643,7 +643,8 @@
     }
 
     // File handling
-    document.getElementById('fileInput').addEventListener('change', (e) => {
+    const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
@@ -668,6 +669,8 @@
         } catch (err) {
           alert('Error parsing JSON file: ' + err.message);
         }
+        // Reset input so the same file can be loaded again
+        fileInput.value = '';
       };
       reader.readAsText(file);
     });
