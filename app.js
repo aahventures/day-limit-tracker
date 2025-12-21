@@ -161,12 +161,11 @@ function updateStats() {
   const maxDaysEl = document.getElementById('maxDays');
   maxDaysEl.textContent = maxWindow.maxDays;
 
-  // Worst window - white until over limit, then red
-  if (maxWindow.maxDays > dayLimit) {
-    maxDaysEl.className = 'stat-value warning';
-  } else {
-    maxDaysEl.className = 'stat-value';
-  }
+  // Most marked window - gradient from green (0) to red (at/over limit)
+  const maxRatio = Math.min(maxWindow.maxDays / dayLimit, 1); // cap at 1
+  const maxHue = Math.round((1 - maxRatio) * 120); // 120 = green, 0 = red
+  maxDaysEl.className = 'stat-value';
+  maxDaysEl.style.color = `hsl(${maxHue}, 70%, 55%)`;
 
   if (maxWindow.start && maxWindow.end) {
     document.getElementById('maxWindowDates').textContent =
