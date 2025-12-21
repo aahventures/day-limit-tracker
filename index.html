@@ -374,6 +374,12 @@
     // 3-year sliding window (can be shifted with nav buttons)
     let baseYear = currentYear - 1; // Start with last year
 
+    // Keyboard navigation state
+    let navLevel = 'month'; // 'month' or 'day'
+    let focusedYear = currentYear;
+    let focusedMonth = today.getMonth();
+    let focusedDate = dateToString(today);
+
     function getDisplayYears() {
       return [baseYear, baseYear + 1, baseYear + 2];
     }
@@ -573,7 +579,9 @@
           monthLabel.textContent = monthName;
           monthLabel.dataset.year = year;
           monthLabel.dataset.month = monthIndex;
-          monthLabel.setAttribute('tabindex', '-1');
+          // Set tabindex: 0 for focused month (tab entry point), -1 for others
+          const isFocusedMonth = (year === focusedYear && monthIndex === focusedMonth);
+          monthLabel.setAttribute('tabindex', isFocusedMonth ? '0' : '-1');
           monthLabel.setAttribute('role', 'button');
           monthLabel.setAttribute('aria-label', `${monthName} ${year}`);
           monthDiv.appendChild(monthLabel);
@@ -922,12 +930,7 @@
       renderCalendar();
     });
 
-    // Keyboard navigation
-    let navLevel = 'month'; // 'month' or 'day'
-    let focusedYear = currentYear;
-    let focusedMonth = today.getMonth();
-    let focusedDate = dateToString(today);
-
+    // Keyboard navigation functions
     function getMonthLabel(year, month) {
       return document.querySelector(`.month-label[data-year="${year}"][data-month="${month}"]`);
     }
@@ -1028,14 +1031,15 @@
         } else if (e.key === 'ArrowDown') {
           e.preventDefault();
           focusMonth(focusedYear + 1, focusedMonth);
-        } else if (e.key === 'Enter' || e.key === 'Tab' && !e.shiftKey) {
-          if (e.key === 'Tab') e.preventDefault();
+        } else if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+          e.preventDefault();
           navLevel = 'day';
           const firstDay = getFirstDayOfMonth(focusedYear, focusedMonth);
           if (firstDay) {
             focusDay(firstDay);
           }
         }
+        // Shift+Tab: let browser handle it (exits calendar to previous element)
       } else if (navLevel === 'day') {
         if (e.key === 'ArrowUp') {
           e.preventDefault();
@@ -1054,24 +1058,18 @@
           handleDayClick(focusedDate, e);
           // Refocus after render (DOM was rebuilt)
           setTimeout(() => focusDay(focusedDate), 0);
-        } else if (e.key === 'Escape' || (e.key === 'Tab' && e.shiftKey)) {
+        } else if (e.key === 'Escape') {
           e.preventDefault();
           navLevel = 'month';
           focusMonth(focusedYear, focusedMonth);
+        } else if (e.key === 'Tab' && e.shiftKey) {
+          e.preventDefault();
+          navLevel = 'month';
+          focusMonth(focusedYear, focusedMonth);
+        } else if (e.key === 'Tab' && !e.shiftKey) {
+          // Let browser handle it (exits calendar to next element)
+          navLevel = 'month'; // Reset for next time we tab back in
         }
-      }
-    });
-
-    // Tab into calendar focuses first month
-    // Use a hidden focusable element to catch tab, then redirect
-    calendarContainer.setAttribute('tabindex', '0');
-    calendarContainer.style.outline = 'none';
-    calendarContainer.addEventListener('focus', (e) => {
-      // Immediately redirect focus to month or day
-      if (navLevel === 'month') {
-        focusMonth(focusedYear, focusedMonth);
-      } else {
-        focusDay(focusedDate);
       }
     });
 
