@@ -193,6 +193,14 @@
       color: #8b949e;
       height: 15px;
       text-align: center;
+      border-radius: 3px;
+      padding: 0 2px;
+      cursor: pointer;
+    }
+    .month-label:focus {
+      outline: 2px solid #58a6ff;
+      outline-offset: 1px;
+      color: #c9d1d9;
     }
     .weeks {
       display: flex;
@@ -212,9 +220,14 @@
       border: 1px solid transparent;
       transition: all 0.1s;
     }
-    .day:hover, .day:focus {
+    .day:hover {
       border-color: #58a6ff;
+    }
+    .day:focus {
       outline: none;
+      box-shadow: 0 0 0 2px #58a6ff;
+      z-index: 1;
+      position: relative;
     }
     .day.outside {
       background: #1f6feb;
@@ -333,7 +346,7 @@
     <button id="todayBtn" aria-label="Jump to today">Today</button>
   </div>
 
-  <div class="calendar-container" id="calendarContainer" role="grid" aria-label="Calendar - click days to mark, shift+click for range"></div>
+  <div class="calendar-container" id="calendarContainer" role="application" aria-label="Calendar navigation: arrows to move, Enter to select, Escape to go back"></div>
 
   <div class="legend">
     <div class="legend-item"><div class="legend-box home"></div> Unmarked</div>
@@ -558,6 +571,11 @@
           const monthLabel = document.createElement('div');
           monthLabel.className = 'month-label';
           monthLabel.textContent = monthName;
+          monthLabel.dataset.year = year;
+          monthLabel.dataset.month = monthIndex;
+          monthLabel.setAttribute('tabindex', '-1');
+          monthLabel.setAttribute('role', 'button');
+          monthLabel.setAttribute('aria-label', `${monthName} ${year}`);
           monthDiv.appendChild(monthLabel);
 
           const weeksDiv = document.createElement('div');
@@ -619,25 +637,15 @@
                   dayDiv.classList.add('in-window');
                 }
 
-                // Accessibility attributes
-                dayDiv.setAttribute('role', 'gridcell');
-                dayDiv.setAttribute('tabindex', '0');
-                dayDiv.setAttribute('aria-label', `${formatDate(date)}, ${isMarked ? 'marked' : 'unmarked'}`);
-                dayDiv.setAttribute('aria-pressed', isMarked);
+                // Accessibility - tabindex managed by keyboard nav
+                dayDiv.setAttribute('tabindex', '-1');
 
                 // All dates are clickable (including future for planning)
                 dayDiv.addEventListener('click', (e) => handleDayClick(dateStr, e));
                 dayDiv.addEventListener('mouseenter', (e) => showTooltip(dateStr, e));
                 dayDiv.addEventListener('mouseleave', hideTooltip);
-                dayDiv.addEventListener('keydown', (e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleDayClick(dateStr, e);
-                  }
-                });
               } else {
                 dayDiv.style.visibility = 'hidden';
-                dayDiv.setAttribute('aria-hidden', 'true');
               }
 
               weekDiv.appendChild(dayDiv);
@@ -912,6 +920,159 @@
     slider.addEventListener('input', (e) => {
       windowEndOffset = parseInt(e.target.value);
       renderCalendar();
+    });
+
+    // Keyboard navigation
+    let navLevel = 'month'; // 'month' or 'day'
+    let focusedYear = currentYear;
+    let focusedMonth = today.getMonth();
+    let focusedDate = dateToString(today);
+
+    function getMonthLabel(year, month) {
+      return document.querySelector(`.month-label[data-year="${year}"][data-month="${month}"]`);
+    }
+
+    function getDayElement(dateStr) {
+      return document.querySelector(`.day[data-date="${dateStr}"]`);
+    }
+
+    function getAllDaysInMonth(year, month) {
+      const days = [];
+      const container = document.getElementById('calendarContainer');
+      container.querySelectorAll(`.day[data-date^="${year}-${String(month + 1).padStart(2, '0')}"]`).forEach(el => {
+        if (el.dataset.date) days.push(el.dataset.date);
+      });
+      return days.sort();
+    }
+
+    function focusMonth(year, month) {
+      // Clamp to displayed years
+      const years = getDisplayYears();
+      if (year < years[0]) { year = years[0]; }
+      if (year > years[2]) { year = years[2]; }
+      if (month < 0) { month = 11; year--; }
+      if (month > 11) { month = 0; year++; }
+      // Re-clamp after wrap
+      if (year < years[0]) { year = years[2]; month = 11; }
+      if (year > years[2]) { year = years[0]; month = 0; }
+
+      focusedYear = year;
+      focusedMonth = month;
+      const label = getMonthLabel(year, month);
+      if (label) {
+        label.setAttribute('tabindex', '0');
+        label.focus();
+        // Reset other month tabindexes
+        document.querySelectorAll('.month-label').forEach(el => {
+          if (el !== label) el.setAttribute('tabindex', '-1');
+        });
+      }
+    }
+
+    function focusDay(dateStr) {
+      const el = getDayElement(dateStr);
+      if (el) {
+        focusedDate = dateStr;
+        el.setAttribute('tabindex', '0');
+        el.focus();
+        // Reset other day tabindexes
+        document.querySelectorAll('.day[data-date]').forEach(d => {
+          if (d !== el) d.setAttribute('tabindex', '-1');
+        });
+      }
+    }
+
+    function getFirstDayOfMonth(year, month) {
+      const days = getAllDaysInMonth(year, month);
+      return days.length > 0 ? days[0] : null;
+    }
+
+    function navigateDay(dateStr, direction) {
+      const date = stringToDate(dateStr);
+      let newDate;
+
+      if (direction === 'up') {
+        newDate = addDays(date, -1);
+      } else if (direction === 'down') {
+        newDate = addDays(date, 1);
+      } else if (direction === 'left') {
+        newDate = addDays(date, -7);
+      } else if (direction === 'right') {
+        newDate = addDays(date, 7);
+      }
+
+      const newDateStr = dateToString(newDate);
+      const el = getDayElement(newDateStr);
+      if (el) {
+        focusDay(newDateStr);
+        // Update focused month if we crossed into a new month
+        focusedYear = newDate.getFullYear();
+        focusedMonth = newDate.getMonth();
+      }
+      // If no element found, stay on current day (don't lose focus)
+    }
+
+    // Make calendar container handle keyboard events
+    const calendarContainer = document.getElementById('calendarContainer');
+    calendarContainer.addEventListener('keydown', (e) => {
+      if (navLevel === 'month') {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          focusMonth(focusedYear, focusedMonth - 1);
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          focusMonth(focusedYear, focusedMonth + 1);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          focusMonth(focusedYear - 1, focusedMonth);
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          focusMonth(focusedYear + 1, focusedMonth);
+        } else if (e.key === 'Enter' || e.key === 'Tab' && !e.shiftKey) {
+          if (e.key === 'Tab') e.preventDefault();
+          navLevel = 'day';
+          const firstDay = getFirstDayOfMonth(focusedYear, focusedMonth);
+          if (firstDay) {
+            focusDay(firstDay);
+          }
+        }
+      } else if (navLevel === 'day') {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          navigateDay(focusedDate, 'up');
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          navigateDay(focusedDate, 'down');
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          navigateDay(focusedDate, 'left');
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          navigateDay(focusedDate, 'right');
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleDayClick(focusedDate, e);
+          // Refocus after render (DOM was rebuilt)
+          setTimeout(() => focusDay(focusedDate), 0);
+        } else if (e.key === 'Escape' || (e.key === 'Tab' && e.shiftKey)) {
+          e.preventDefault();
+          navLevel = 'month';
+          focusMonth(focusedYear, focusedMonth);
+        }
+      }
+    });
+
+    // Tab into calendar focuses first month
+    // Use a hidden focusable element to catch tab, then redirect
+    calendarContainer.setAttribute('tabindex', '0');
+    calendarContainer.style.outline = 'none';
+    calendarContainer.addEventListener('focus', (e) => {
+      // Immediately redirect focus to month or day
+      if (navLevel === 'month') {
+        focusMonth(focusedYear, focusedMonth);
+      } else {
+        focusDay(focusedDate);
+      }
     });
 
     // Initial render
