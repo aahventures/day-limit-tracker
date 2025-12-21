@@ -229,13 +229,13 @@
       z-index: 1;
       position: relative;
     }
-    .day.outside {
+    .day.marked {
       background: #1f6feb;
     }
     .day.in-window {
       border-color: #f0883e;
     }
-    .day.outside.in-window {
+    .day.marked.in-window {
       background: #f0883e;
     }
     .day.today::after {
@@ -273,14 +273,14 @@
     .legend-box.home {
       background: #161b22;
     }
-    .legend-box.outside {
+    .legend-box.marked {
       background: #1f6feb;
     }
     .legend-box.in-window {
       background: #161b22;
       border: 1px solid #f0883e;
     }
-    .legend-box.outside-in-window {
+    .legend-box.marked-in-window {
       background: #f0883e;
     }
     .legend-box.today {
@@ -371,9 +371,9 @@
 
   <div class="legend">
     <div class="legend-item"><div class="legend-box home"></div> Unmarked</div>
-    <div class="legend-item"><div class="legend-box outside"></div> Marked</div>
+    <div class="legend-item"><div class="legend-box marked"></div> Marked</div>
     <div class="legend-item"><div class="legend-box in-window"></div> In window</div>
-    <div class="legend-item"><div class="legend-box outside-in-window"></div> Marked (in window)</div>
+    <div class="legend-item"><div class="legend-box marked-in-window"></div> Marked (in window)</div>
     <div class="legend-item"><div class="legend-box today"></div> Today</div>
   </div>
 
@@ -381,7 +381,7 @@
 
   <script>
     // State
-    let outsideDays = new Set(); // Set of date strings "YYYY-MM-DD"
+    let markedDays = new Set(); // Set of date strings "YYYY-MM-DD"
     let lastClickedDate = null;
 
     // Configurable settings
@@ -463,7 +463,7 @@
     // Calculate marked days in a specific window
     function calculateDaysInWindowRange(windowStart, windowEnd) {
       let count = 0;
-      outsideDays.forEach(dateStr => {
+      markedDays.forEach(dateStr => {
         const date = stringToDate(dateStr);
         if (date >= windowStart && date <= windowEnd) {
           count++;
@@ -482,7 +482,7 @@
     let maxWindowOffset = null;
     function findMaxWindow() {
       const minOffset = windowSize - 1;
-      if (outsideDays.size === 0) {
+      if (markedDays.size === 0) {
         return { maxDays: 0, offset: minOffset, start: null, end: null };
       }
 
@@ -518,7 +518,7 @@
 
       daysInWindowEl.textContent = daysInWindow;
       daysRemainingEl.textContent = daysRemaining;
-      document.getElementById('totalDays').textContent = outsideDays.size;
+      document.getElementById('totalDays').textContent = markedDays.size;
 
       // Update dynamic label
       document.getElementById('remainingLabel').textContent = `Remaining (of ${dayLimit})`;
@@ -658,9 +658,9 @@
                   dayDiv.classList.add('today');
                 }
 
-                const isMarked = outsideDays.has(dateStr);
+                const isMarked = markedDays.has(dateStr);
                 if (isMarked) {
-                  dayDiv.classList.add('outside');
+                  dayDiv.classList.add('marked');
                 }
 
                 if (date >= windowStart && date <= windowEnd) {
@@ -705,24 +705,24 @@
         const end = stringToDate(dateStr);
         const [from, to] = start < end ? [start, end] : [end, start];
 
-        const shouldAdd = !outsideDays.has(dateStr);
+        const shouldAdd = !markedDays.has(dateStr);
         let current = new Date(from);
 
         while (current <= to) {
           const str = dateToString(current);
           if (shouldAdd) {
-            outsideDays.add(str);
+            markedDays.add(str);
           } else {
-            outsideDays.delete(str);
+            markedDays.delete(str);
           }
           current = addDays(current, 1);
         }
       } else {
         // Single toggle
-        if (outsideDays.has(dateStr)) {
-          outsideDays.delete(dateStr);
+        if (markedDays.has(dateStr)) {
+          markedDays.delete(dateStr);
         } else {
-          outsideDays.add(dateStr);
+          markedDays.add(dateStr);
         }
       }
 
@@ -734,7 +734,7 @@
     function showTooltip(dateStr, eventOrElement) {
       const tooltip = document.getElementById('tooltip');
       const date = stringToDate(dateStr);
-      const isOutside = outsideDays.has(dateStr);
+      const isOutside = markedDays.has(dateStr);
       const { start, end } = getWindowDates();
       const inWindow = date >= start && date <= end;
 
@@ -786,15 +786,15 @@
       reader.onload = (event) => {
         try {
           const data = JSON.parse(event.target.result);
-          outsideDays.clear();
+          markedDays.clear();
 
-          data.forEach(trip => {
-            const start = stringToDate(trip.start);
-            const end = stringToDate(trip.end);
+          data.forEach(range => {
+            const start = stringToDate(range.start);
+            const end = stringToDate(range.end);
             let current = new Date(start);
 
             while (current <= end) {
-              outsideDays.add(dateToString(current));
+              markedDays.add(dateToString(current));
               current = addDays(current, 1);
             }
           });
@@ -816,32 +816,32 @@
     // Export
     document.getElementById('exportBtn').addEventListener('click', () => {
       // Group consecutive days into ranges
-      const sortedDays = Array.from(outsideDays).sort();
-      const trips = [];
-      let currentTrip = null;
+      const sortedDays = Array.from(markedDays).sort();
+      const ranges = [];
+      let currentRange = null;
 
       sortedDays.forEach(dateStr => {
-        if (!currentTrip) {
-          currentTrip = { start: dateStr, end: dateStr };
+        if (!currentRange) {
+          currentRange = { start: dateStr, end: dateStr };
         } else {
-          const lastDate = stringToDate(currentTrip.end);
+          const lastDate = stringToDate(currentRange.end);
           const thisDate = stringToDate(dateStr);
           const diff = daysBetween(lastDate, thisDate);
 
           if (diff === 1) {
-            currentTrip.end = dateStr;
+            currentRange.end = dateStr;
           } else {
-            trips.push(currentTrip);
-            currentTrip = { start: dateStr, end: dateStr };
+            ranges.push(currentRange);
+            currentRange = { start: dateStr, end: dateStr };
           }
         }
       });
 
-      if (currentTrip) {
-        trips.push(currentTrip);
+      if (currentRange) {
+        ranges.push(currentRange);
       }
 
-      const json = JSON.stringify(trips, null, 2);
+      const json = JSON.stringify(ranges, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -854,7 +854,7 @@
     // Clear
     document.getElementById('clearBtn').addEventListener('click', () => {
       if (confirm('Clear all marked days?')) {
-        outsideDays.clear();
+        markedDays.clear();
         renderCalendar();
       }
     });
