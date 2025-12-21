@@ -117,6 +117,21 @@
       width: 100%;
       cursor: pointer;
     }
+    .year-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .year-nav span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c9d1d9;
+    }
+    .year-nav button {
+      padding: 4px 10px;
+      font-size: 14px;
+    }
     .calendar-container {
       overflow-x: auto;
     }
@@ -285,6 +300,12 @@
     <input type="range" id="windowSlider" min="364" max="730" value="365">
   </div>
 
+  <div class="year-nav">
+    <button id="prevYears">&larr;</button>
+    <span id="yearRange"></span>
+    <button id="nextYears">&rarr;</button>
+  </div>
+
   <div class="calendar-container" id="calendarContainer"></div>
 
   <div class="legend">
@@ -301,22 +322,33 @@
     let outsideDays = new Set(); // Set of date strings "YYYY-MM-DD"
     let lastClickedDate = null;
 
-    // Date utilities - dynamic based on current date
+    // Date utilities
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const currentYear = today.getFullYear();
 
-    // Show current year and next year
-    const displayYears = [currentYear, currentYear + 1];
+    // 3-year sliding window (can be shifted with nav buttons)
+    let baseYear = currentYear - 1; // Start with last year
 
-    // Start date is Jan 1 of current year, end is Dec 31 of next year
-    const startDate = new Date(currentYear, 0, 1);
-    const endDate = new Date(currentYear + 1, 11, 31);
-    const totalDaysInRange = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+    function getDisplayYears() {
+      return [baseYear, baseYear + 1, baseYear + 2];
+    }
 
-    // Default slider to today's date
-    const defaultOffset = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
-    let windowEndOffset = defaultOffset;
+    function getDateRange() {
+      const startDate = new Date(baseYear, 0, 1);
+      const endDate = new Date(baseYear + 2, 11, 31);
+      const totalDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+      return { startDate, endDate, totalDays };
+    }
+
+    // Default slider to today's date (clamped to visible range)
+    function getDefaultOffset() {
+      const { startDate, totalDays } = getDateRange();
+      const offset = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
+      return Math.max(364, Math.min(offset, totalDays));
+    }
+
+    let windowEndOffset = getDefaultOffset();
 
     function dateToString(date) {
       const y = date.getFullYear();
@@ -350,6 +382,7 @@
 
     // Get window dates based on slider
     function getWindowDates() {
+      const { startDate } = getDateRange();
       const endDate = addDays(startDate, windowEndOffset);
       const startWindowDate = addDays(endDate, -364); // 365 days inclusive
       return { start: startWindowDate, end: endDate };
@@ -380,11 +413,12 @@
         return { maxDays: 0, offset: 364, start: null, end: null };
       }
 
+      const { startDate, totalDays } = getDateRange();
       let maxDays = 0;
       let bestOffset = 364;
 
       // Scan all possible windows (sliding by day)
-      for (let offset = 364; offset <= totalDaysInRange; offset++) {
+      for (let offset = 364; offset <= totalDays; offset++) {
         const windowEnd = addDays(startDate, offset);
         const windowStart = addDays(windowEnd, -364);
         const days = calculateDaysInWindowRange(windowStart, windowEnd);
@@ -455,8 +489,8 @@
 
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-      // Render current year and next year
-      displayYears.forEach(year => {
+      // Render 3-year window
+      getDisplayYears().forEach(year => {
         const yearLabel = document.createElement('div');
         yearLabel.className = 'year-label';
         yearLabel.textContent = year;
@@ -712,6 +746,13 @@
     // Slider setup
     const slider = document.getElementById('windowSlider');
 
+    function updateSliderRange() {
+      const { totalDays } = getDateRange();
+      slider.min = 364;
+      slider.max = totalDays;
+      slider.value = windowEndOffset;
+    }
+
     // Jump to worst-case window
     document.querySelector('.stat.worst-case').addEventListener('click', () => {
       if (maxWindowOffset !== null) {
@@ -720,9 +761,25 @@
         renderCalendar();
       }
     });
-    slider.min = 364; // Minimum: end of first year (so window starts at Jan 1)
-    slider.max = totalDaysInRange;
-    slider.value = windowEndOffset;
+
+    // Year navigation
+    function shiftYears(delta) {
+      baseYear += delta;
+      windowEndOffset = getDefaultOffset();
+      updateSliderRange();
+      renderCalendar();
+      updateYearNav();
+    }
+
+    function updateYearNav() {
+      const years = getDisplayYears();
+      document.getElementById('yearRange').textContent = `${years[0]} - ${years[2]}`;
+    }
+
+    document.getElementById('prevYears').addEventListener('click', () => shiftYears(-1));
+    document.getElementById('nextYears').addEventListener('click', () => shiftYears(1));
+
+    updateSliderRange();
 
     slider.addEventListener('input', (e) => {
       windowEndOffset = parseInt(e.target.value);
@@ -730,6 +787,7 @@
     });
 
     // Initial render
+    updateYearNav();
     renderCalendar();
   </script>
 </body>
