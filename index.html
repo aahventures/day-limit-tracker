@@ -304,6 +304,7 @@
     <button id="prevYears">&larr;</button>
     <span id="yearRange"></span>
     <button id="nextYears">&rarr;</button>
+    <button id="todayBtn">Today</button>
   </div>
 
   <div class="calendar-container" id="calendarContainer"></div>
@@ -778,6 +779,15 @@
 
     document.getElementById('prevYears').addEventListener('click', () => shiftYears(-1));
     document.getElementById('nextYears').addEventListener('click', () => shiftYears(1));
+
+    // Jump to today
+    document.getElementById('todayBtn').addEventListener('click', () => {
+      baseYear = currentYear - 1; // Reset to default year range
+      windowEndOffset = getDefaultOffset();
+      updateSliderRange();
+      updateYearNav();
+      renderCalendar();
+    });
 
     updateSliderRange();
 
