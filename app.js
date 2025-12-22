@@ -2,6 +2,11 @@
 let markedDays = new Set(); // Set of date strings "YYYY-MM-DD"
 let lastClickedDate = null;
 
+// Touch drag selection state
+let touchStartDate = null;
+let touchCurrentDate = null;
+let isDragging = false;
+
 // LocalStorage persistence
 const STORAGE_KEY = 'day-limit-tracker-dates';
 
@@ -327,6 +332,9 @@ function renderCalendar() {
             dayDiv.addEventListener('mouseleave', hideTooltip);
             dayDiv.addEventListener('focus', () => showTooltip(dateStr, dayDiv));
             dayDiv.addEventListener('blur', hideTooltip);
+            dayDiv.addEventListener('touchstart', (e) => handleTouchStart(dateStr, e), {
+              passive: false,
+            });
           } else {
             dayDiv.style.visibility = 'hidden';
           }
@@ -381,6 +389,98 @@ function handleDayClick(dateStr, event) {
   renderCalendar();
   saveToStorage();
 }
+
+// Touch drag selection
+function handleTouchStart(dateStr, e) {
+  touchStartDate = dateStr;
+  touchCurrentDate = dateStr;
+  isDragging = true;
+  updateDragPreview();
+  e.preventDefault(); // Prevent scrolling while dragging
+}
+
+function handleTouchMove(e) {
+  if (!isDragging) return;
+
+  const touch = e.touches[0];
+  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+
+  if (element && element.classList.contains('day') && element.dataset.date) {
+    const newDate = element.dataset.date;
+    if (newDate !== touchCurrentDate) {
+      touchCurrentDate = newDate;
+      updateDragPreview();
+    }
+  }
+  e.preventDefault();
+}
+
+function handleTouchEnd() {
+  if (!isDragging || !touchStartDate) {
+    clearDragState();
+    return;
+  }
+
+  // Apply the selection
+  const start = stringToDate(touchStartDate);
+  const end = stringToDate(touchCurrentDate || touchStartDate);
+  const [from, to] = start < end ? [start, end] : [end, start];
+
+  // Determine action based on start date state
+  const shouldAdd = !markedDays.has(touchStartDate);
+  let current = new Date(from);
+
+  while (current <= to) {
+    const str = dateToString(current);
+    if (shouldAdd) {
+      markedDays.add(str);
+    } else {
+      markedDays.delete(str);
+    }
+    current = addDays(current, 1);
+  }
+
+  clearDragState();
+  renderCalendar();
+  saveToStorage();
+}
+
+function updateDragPreview() {
+  // Clear existing previews
+  document.querySelectorAll('.day.drag-preview').forEach((el) => {
+    el.classList.remove('drag-preview');
+  });
+
+  if (!touchStartDate || !touchCurrentDate) return;
+
+  const start = stringToDate(touchStartDate);
+  const end = stringToDate(touchCurrentDate);
+  const [from, to] = start < end ? [start, end] : [end, start];
+
+  let current = new Date(from);
+  while (current <= to) {
+    const str = dateToString(current);
+    const el = document.querySelector(`.day[data-date="${str}"]`);
+    if (el) {
+      el.classList.add('drag-preview');
+    }
+    current = addDays(current, 1);
+  }
+}
+
+function clearDragState() {
+  touchStartDate = null;
+  touchCurrentDate = null;
+  isDragging = false;
+  document.querySelectorAll('.day.drag-preview').forEach((el) => {
+    el.classList.remove('drag-preview');
+  });
+}
+
+// Global touch event listeners
+document.addEventListener('touchmove', handleTouchMove, { passive: false });
+document.addEventListener('touchend', handleTouchEnd);
+document.addEventListener('touchcancel', clearDragState);
 
 // Tooltip
 function showTooltip(dateStr, eventOrElement) {
