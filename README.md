@@ -48,3 +48,7 @@ npm run lint        # Check for issues
 npm run lint:fix    # Auto-fix issues
 npm run format      # Format with Prettier
 ```
+
+## License
+
+MIT
