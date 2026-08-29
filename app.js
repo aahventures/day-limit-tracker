@@ -10,9 +10,20 @@ let isDragging = false;
 // LocalStorage persistence
 const STORAGE_KEY = 'day-limit-tracker-dates';
 
+const PREFS_KEY = 'day-limit-tracker-prefs';
+const MAX_WINDOW_SIZE = 730; // Matches the windowSizeInput max attribute
+
+function isStoredInt(value, max) {
+  return Number.isInteger(value) && value >= 1 && value <= max;
+}
+
 function saveToStorage() {
-  const dates = Array.from(markedDays);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(dates));
+  try {
+    const dates = Array.from(markedDays);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dates));
+  } catch {
+    // Ignore storage failures (private browsing, quota)
+  }
 }
 
 function loadFromStorage() {
@@ -25,6 +36,38 @@ function loadFromStorage() {
   } catch {
     // Ignore invalid storage data
   }
+}
+
+// Persist the window config. The view (year range, slider) is deliberately not
+// stored - every visit opens on today.
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ windowSize, dayLimit }));
+  } catch {
+    // Ignore storage failures (private browsing, quota)
+  }
+}
+
+function loadPrefs() {
+  let prefs;
+  try {
+    prefs = JSON.parse(localStorage.getItem(PREFS_KEY));
+  } catch {
+    return; // Ignore invalid storage data
+  }
+  if (!prefs || typeof prefs !== 'object') return;
+
+  // Feed stored config through the inputs so applyConfigFromInputs validates it.
+  // Range-check first: a huge integer stringifies to exponent form ("1e+21"),
+  // which parseInt would silently read back as 1.
+  if (isStoredInt(prefs.windowSize, MAX_WINDOW_SIZE)) {
+    windowSizeInput.value = prefs.windowSize;
+  }
+  if (isStoredInt(prefs.dayLimit, MAX_WINDOW_SIZE)) {
+    dayLimitInput.value = prefs.dayLimit;
+  }
+  applyConfigFromInputs();
+  syncPresetSelect();
 }
 
 // Configurable settings
@@ -697,11 +740,12 @@ const presetSelect = document.getElementById('presetSelect');
 const windowSizeInput = document.getElementById('windowSizeInput');
 const dayLimitInput = document.getElementById('dayLimitInput');
 
-function applyConfig() {
+// Read, validate and apply the config inputs (without touching the view)
+function applyConfigFromInputs() {
   // Validate window size (min 1, max 730)
   let ws = parseInt(windowSizeInput.value);
   if (isNaN(ws) || ws < 1) ws = 365;
-  if (ws > 730) ws = 730;
+  if (ws > MAX_WINDOW_SIZE) ws = MAX_WINDOW_SIZE;
   windowSize = ws;
   windowSizeInput.value = ws;
 
@@ -714,12 +758,25 @@ function applyConfig() {
   if (dl > ws) dl = ws;
   dayLimit = dl;
   dayLimitInput.value = dl;
+}
+
+// Select the preset matching the current config, or "custom" if none does
+function syncPresetSelect() {
+  const value = `${windowSize}/${dayLimit}`;
+  const isPreset = Array.from(presetSelect.options).some((opt) => opt.value === value);
+  presetSelect.value = isPreset ? value : 'custom';
+}
+
+function applyConfig() {
+  applyConfigFromInputs();
+  syncPresetSelect();
 
   fitDisplayToWindow();
   windowEndOffset = getDefaultOffset();
   updateSliderRange();
   updateYearNav();
   renderCalendar();
+  savePrefs();
 }
 
 presetSelect.addEventListener('change', (e) => {
@@ -732,17 +789,8 @@ presetSelect.addEventListener('change', (e) => {
   }
 });
 
-windowSizeInput.addEventListener('change', () => {
-  presetSelect.value = 'custom';
-  applyConfig();
-});
-
-dayLimitInput.addEventListener('change', () => {
-  presetSelect.value = 'custom';
-  applyConfig();
-});
-
-updateSliderRange();
+windowSizeInput.addEventListener('change', applyConfig);
+dayLimitInput.addEventListener('change', applyConfig);
 
 slider.addEventListener('input', (e) => {
   windowEndOffset = parseInt(e.target.value);
@@ -914,5 +962,11 @@ calendarContainer.addEventListener('keydown', (e) => {
 
 // Initial render
 loadFromStorage();
+loadPrefs();
+
+// A restored window size changes which offsets are valid, so open on today
+fitDisplayToWindow();
+windowEndOffset = getDefaultOffset();
+updateSliderRange();
 updateYearNav();
 renderCalendar();

@@ -19,7 +19,7 @@ https://aahventures.github.io/day-limit-tracker/
 - Sliding window to check any date range
 - Jump to "most marked window" to find worst-case scenario
 - Load/export dates as JSON
-- Dates persist in browser localStorage
+- Dates and window settings persist in browser localStorage (the view always opens on today)
 - Keyboard navigation support
 
 ## Usage
