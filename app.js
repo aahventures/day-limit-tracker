@@ -56,11 +56,29 @@ function getDateRange() {
   return { startDate, endDate, totalDays };
 }
 
+// Keep a window end offset within the range the slider allows. A window cannot
+// start before the displayed years, so the offset floors at windowSize - 1.
+function clampOffset(offset) {
+  const { totalDays } = getDateRange();
+  return Math.max(windowSize - 1, Math.min(offset, totalDays));
+}
+
+// Shift the displayed years back until a window ending today fits inside them.
+// Without this a long window (say 730 days) floors past today's offset, opening
+// on a window that ends months in the future with no way to slide back.
+function fitDisplayToWindow() {
+  const { startDate, totalDays } = getDateRange();
+  const todayOffset = daysBetween(startDate, today);
+  if (todayOffset < 0 || todayOffset > totalDays) return; // Today isn't displayed
+  while (windowSize - 1 > daysBetween(new Date(baseYear, 0, 1), today)) {
+    baseYear--;
+  }
+}
+
 // Default slider to today's date (clamped to visible range)
 function getDefaultOffset() {
-  const { startDate, totalDays } = getDateRange();
-  const offset = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
-  return Math.max(windowSize - 1, Math.min(offset, totalDays));
+  const { startDate } = getDateRange();
+  return clampOffset(daysBetween(startDate, today));
 }
 
 let windowEndOffset = getDefaultOffset();
@@ -667,6 +685,7 @@ document.getElementById('nextYears').addEventListener('click', () => shiftYears(
 // Jump to today
 document.getElementById('todayBtn').addEventListener('click', () => {
   baseYear = currentYear - 1; // Reset to default year range
+  fitDisplayToWindow();
   windowEndOffset = getDefaultOffset();
   updateSliderRange();
   updateYearNav();
@@ -696,8 +715,10 @@ function applyConfig() {
   dayLimit = dl;
   dayLimitInput.value = dl;
 
+  fitDisplayToWindow();
   windowEndOffset = getDefaultOffset();
   updateSliderRange();
+  updateYearNav();
   renderCalendar();
 }
 
